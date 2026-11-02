@@ -19,7 +19,13 @@ export default function LeftNavigation({
   const { isConnected } = useStore();
 
   return (
-    <aside className="w-[230px] flex-shrink-0 h-screen bg-[#121214] text-white flex flex-col justify-between select-none border-r border-neutral-900 z-20">
+    <aside
+      className="w-[230px] flex-shrink-0 h-screen text-white flex flex-col justify-between select-none relative z-20"
+      style={{
+        background: 'linear-gradient(180deg, #121214 0%, #121214 50%, rgba(18,18,20,0.85) 62%, rgba(18,18,20,0.35) 74%, transparent 88%)',
+        borderRight: '1px solid rgba(255, 255, 255, 0.05)',
+      }}
+    >
       {/* ── TOP: BRAND LOGO & NAVIGATION ── */}
       <div className="flex flex-col p-5 pb-0">
         {/* Brand Logo */}
@@ -129,20 +135,8 @@ export default function LeftNavigation({
         </nav>
       </div>
 
-      {/* ── BOTTOM: JAPANESE WALLPAPER ARTWORK ── */}
-      <div className="relative w-full h-56 overflow-hidden select-none pointer-events-none mt-auto">
-        <div
-          className="w-full h-full"
-          style={{
-            backgroundImage: "url('/wallpaper.jpg')",
-            backgroundSize: '420px auto',
-            backgroundPosition: 'bottom left',
-            backgroundRepeat: 'no-repeat',
-            maskImage: 'linear-gradient(to top, black 85%, transparent 100%)',
-            WebkitMaskImage: 'linear-gradient(to top, black 85%, transparent 100%)',
-          }}
-        />
-      </div>
+      {/* ── BOTTOM SPACER: ALLOWS UNDERLYING WALLPAPER TO SHINE THROUGH ── */}
+      <div className="h-64 pointer-events-none" />
     </aside>
   );
 }

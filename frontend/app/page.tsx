@@ -335,7 +335,15 @@ export default function Home() {
   }
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex select-none bg-[#f4f0e8]">
+    <div
+      className="h-screen w-screen overflow-hidden flex select-none relative"
+      style={{
+        backgroundImage: "url('/wallpaper.jpg')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'bottom left',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
       {/* ── 1. LEFT NAVIGATION PANEL ── */}
       <LeftNavigation
         activeTab={currentRoom?.roomType === 'stranger_chat' ? 'stranger_chat' : activeNavTab}
@@ -345,15 +353,7 @@ export default function Home() {
       />
 
       {/* ── 2. CENTER & HEADER COLUMN ── */}
-      <div
-        className="flex-1 flex flex-col h-screen min-w-0 overflow-hidden"
-        style={{
-          backgroundImage: "url('/wallpaper.jpg')",
-          backgroundSize: 'cover',
-          backgroundPosition: 'right center',
-          backgroundRepeat: 'no-repeat',
-        }}
-      >
+      <div className="flex-1 flex flex-col h-screen min-w-0 overflow-hidden bg-transparent z-10">
         {/* Top Header */}
         <TopHeader
           onReport={() => setShowReportModal(true)}

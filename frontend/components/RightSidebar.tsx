@@ -108,9 +108,9 @@ export default function RightSidebar({
   ];
 
   return (
-    <aside className="w-80 flex-shrink-0 flex flex-col gap-4 p-4 pr-6 select-none overflow-y-auto">
+    <aside className="w-80 flex-shrink-0 flex flex-col gap-4 p-4 pr-6 select-none overflow-y-auto bg-transparent z-10">
       {/* ── CARD 1: VOICE CHAT ── */}
-      <div className="bg-[#18181b] text-white rounded-2xl p-4 shadow-lg border border-neutral-800/80">
+      <div className="bg-[#18181b]/90 backdrop-blur-md text-white rounded-2xl p-4 shadow-lg border border-neutral-800/80">
         <header className="flex items-center justify-between pb-3 border-b border-neutral-800">
           <div className="flex items-center gap-2">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
@@ -170,7 +170,7 @@ export default function RightSidebar({
       </div>
 
       {/* ── CARD 2: SUGGESTIONS ── */}
-      <div className="bg-[#18181b] text-white rounded-2xl p-4 shadow-lg border border-neutral-800/80">
+      <div className="bg-[#18181b]/90 backdrop-blur-md text-white rounded-2xl p-4 shadow-lg border border-neutral-800/80">
         <header className="flex items-center justify-between pb-3 border-b border-neutral-800">
           <div className="flex items-center gap-2">
             <span className="text-amber-400 text-sm">💡</span>
