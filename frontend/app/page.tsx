@@ -17,11 +17,13 @@ import MatchingModal from '@/components/MatchingModal';
 import PublicDisclosureBanner from '@/components/PublicDisclosureBanner';
 import ObserverSuggestionsPanel from '@/components/ObserverSuggestionsPanel';
 import ReportModal from '@/components/ReportModal';
+import StrangerChatLanding from '@/components/StrangerChatLanding';
+import { MasterFeedTile } from '@/components/MasterFeedTile';
 
 export default function Home() {
   const router = useRouter();
-  const { user, currentRoom, rooms, messages, isConnected, typingUsers, userRoleInCurrentRoom, setSuggestions, setCurrentRoom, setRooms, setMessages, logout } = useStore();
-  const { sendMessage, startTyping, stopTyping } = useSocket();
+  const { user, currentRoom, rooms, messages, isConnected, typingUsers, userRoleInCurrentRoom, setSuggestions, setCurrentRoom, setRooms, setMessages, setMatchedPartner, logout } = useStore();
+  const { sendMessage, startTyping, stopTyping, socket } = useSocket();
 
   const [messageText, setMessageText] = useState('');
   const [loading, setLoading] = useState(true);
@@ -42,6 +44,16 @@ export default function Home() {
         alert(errorObj.response?.data?.error || 'Failed to block user');
       }
     }
+  };
+
+  const handleLeaveRoom = () => {
+    if (currentRoom && socket?.connected) {
+      socket.emit('leave_room', { roomId: currentRoom._id });
+    }
+    setCurrentRoom(null);
+    setMatchedPartner(null);
+    setSuggestions([]);
+    setMessages([]);
   };
 
   useEffect(() => {
@@ -523,76 +535,130 @@ export default function Home() {
             </div>
           ) : currentRoom ? (
             <>
-              <div className="gradient-yellow px-6 py-4 border-b-[3px] border-black flex items-center justify-between">
-                <h2 className="text-xl font-black"># {currentRoom.name}</h2>
-                {currentRoom.roomType === 'stranger_chat' && (
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setShowReportModal(true)}
-                      className="btn-brutal bg-white text-error font-black text-xs px-3 py-1.5 uppercase hover:bg-error hover:text-white transition-colors"
-                      title="Report this user or room"
-                    >
-                      🛡️ REPORT
-                    </button>
-                    {matchedPartner && (
-                      <button
-                        onClick={handleBlockPartner}
-                        className="btn-brutal bg-error text-white font-black text-xs px-3 py-1.5 uppercase hover:brightness-110"
-                        title="Block this partner from future matches"
+              {/* Room Header */}
+              <div className="gradient-yellow px-4 sm:px-6 py-3 sm:py-4 border-b-[3px] border-black flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h2 className="text-lg sm:text-xl font-black"># {currentRoom.name}</h2>
+                  {currentRoom.roomType === 'stranger_chat' && (
+                    <>
+                      <span className="badge-brutal bg-black text-yellow text-xs font-black uppercase">
+                        PUBLIC ROOM
+                      </span>
+                      <span
+                        className={`badge-brutal text-xs font-black uppercase ${
+                          userRoleInCurrentRoom === 'observer'
+                            ? 'bg-purple text-white'
+                            : 'bg-success text-white'
+                        }`}
                       >
-                        🚫 BLOCK #{matchedPartner.publicId}
+                        {userRoleInCurrentRoom === 'observer' ? 'SPECTATING (READ-ONLY)' : 'PARTICIPANT'}
+                      </span>
+                      <span className="badge-brutal bg-card text-dark text-xs font-black">
+                        👁️ {currentRoom.observerCount || 0} OBSERVER{(currentRoom.observerCount || 0) === 1 ? '' : 'S'}
+                      </span>
+                    </>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  {currentRoom.roomType === 'stranger_chat' && (
+                    <>
+                      <button
+                        onClick={() => setShowReportModal(true)}
+                        className="btn-brutal bg-white text-error font-black text-xs px-3 py-1.5 uppercase hover:bg-error hover:text-white transition-colors"
+                        title="Report this user or room"
+                      >
+                        🛡️ REPORT
                       </button>
-                    )}
-                  </div>
-                )}
+                      {matchedPartner && userRoleInCurrentRoom !== 'observer' && (
+                        <button
+                          onClick={handleBlockPartner}
+                          className="btn-brutal bg-error text-white font-black text-xs px-3 py-1.5 uppercase hover:brightness-110"
+                          title="Block this partner from future matches"
+                        >
+                          🚫 BLOCK #{matchedPartner.publicId}
+                        </button>
+                      )}
+                    </>
+                  )}
+                  <button
+                    onClick={handleLeaveRoom}
+                    className="btn-brutal bg-card text-dark font-black text-xs px-3 py-1.5 uppercase hover:bg-gray-100"
+                    title="Leave room and return to stranger chat"
+                  >
+                    LEAVE ROOM
+                  </button>
+                </div>
               </div>
+
+              {/* Socket Reconnection Alert via MasterFeedTile */}
+              {!isConnected && (
+                <div className="p-3 bg-surface border-b-[3px] border-black">
+                  <MasterFeedTile
+                    payload={{
+                      id: 'net-disconnect-alert',
+                      kind: 'status_alert',
+                      severity: 'warning',
+                      title: 'GATEWAY DISCONNECTED',
+                      description: 'Disconnected from chat server. Reconnecting automatically...',
+                      timestamp: 'Live',
+                    }}
+                  />
+                </div>
+              )}
 
               <PublicDisclosureBanner />
               <ObserverSuggestionsPanel />
 
-              <div className="flex-1 overflow-y-auto bg-muted p-6">
-                <div className="flex flex-col gap-4">
-                  {messages.map((msg, idx) => (
-                    <div
-                      key={msg._id}
-                      className="card-brutal p-4"
-                      style={{ background: getMessageBg(idx, msg.messageType === 'system') }}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-black text-sm">{msg.username}</span>
-                        <div className="flex items-center gap-2">
-                          {canDeleteMessage(msg.username) && (
-                            <button
-                              onClick={() => handleDeleteMessage(msg._id)}
-                              className="badge-brutal cursor-pointer hover:bg-error transition-colors"
-                              style={{ width: '28px', height: '28px', background: 'var(--bg-secondary)', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                            >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="3 6 5 6 21 6" />
-                                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-                              </svg>
-                            </button>
-                          )}
-                          <span className="badge-brutal text-xs bg-card">
-                            {format(new Date(msg.createdAt), 'HH:mm')}
-                          </span>
-                        </div>
-                      </div>
-                      {msg.text && <p className="font-medium text-sm">{msg.text}</p>}
-                      {msg.attachment && (
-                        <MediaMessage
-                          attachment={msg.attachment}
-                          cachedUrl={mediaUrls[msg.attachment.fileId]}
-                          onUrlLoaded={(fileId, url) => setMediaUrls((prev) => ({ ...prev, [fileId]: url }))}
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
+              {/* Message Timeline rendered via Polymorphic MasterFeedTile */}
+              <div className="flex-1 overflow-y-auto bg-muted p-4 sm:p-6 flex flex-col">
+                {messages.length === 0 ? (
+                  <div className="flex-1 flex flex-col items-center justify-center p-8 text-center my-auto min-h-[220px]">
+                    <div className="text-3xl mb-2 select-none" aria-hidden="true">💬</div>
+                    <h3 className="text-lg font-black uppercase text-dark">No messages yet</h3>
+                    <p className="text-xs font-bold text-dim max-w-sm mt-1">
+                      {userRoleInCurrentRoom === 'observer'
+                        ? 'Waiting for participants to begin their conversation. Drop a suggestion above!'
+                        : 'Say hello to start the conversation! All messages in this stranger chat are public.'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    {messages.map((msg, idx) => (
+                      <MasterFeedTile
+                        key={msg._id}
+                        payload={{
+                          id: msg._id,
+                          kind: 'chat_message',
+                          timestamp: msg.createdAt,
+                          sender: {
+                            username: msg.username,
+                            publicId: msg.publicId,
+                            role: msg.username === user?.username ? 'self' : 'participant',
+                          },
+                          content: msg.text,
+                          isSystem: msg.messageType === 'system',
+                          canDelete: canDeleteMessage(msg.username),
+                          onDelete: () => handleDeleteMessage(msg._id),
+                          bgColor: getMessageBg(idx, msg.messageType === 'system'),
+                          attachment: msg.attachment,
+                          attachmentNode: msg.attachment ? (
+                            <MediaMessage
+                              attachment={msg.attachment}
+                              cachedUrl={mediaUrls[msg.attachment.fileId]}
+                              onUrlLoaded={(fileId, url) => setMediaUrls((prev) => ({ ...prev, [fileId]: url }))}
+                            />
+                          ) : undefined,
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
                 <div ref={messagesEndRef} />
               </div>
 
-              <form onSubmit={handleSendMessage} className="px-6 py-4 bg-card border-t-[3px] border-black">
+              {/* Message Composer (Disabled in Observer Mode) */}
+              <form onSubmit={handleSendMessage} className="px-4 sm:px-6 py-3 sm:py-4 bg-card border-t-[3px] border-black">
                 {typingUsers.length > 0 && (
                   <div className="text-xs font-bold mb-2 text-purple">
                     {typingUsers.length === 1
@@ -619,20 +685,21 @@ export default function Home() {
                     <span className="text-xs font-bold">{uploadProgress}%</span>
                   </div>
                 )}
-                <div className="flex gap-3">
+                <div className="flex gap-2 sm:gap-3">
                   <input
                     ref={fileInputRef}
                     type="file"
                     accept="image/*,video/*,audio/*"
                     onChange={handleFileSelect}
                     className="hidden"
+                    disabled={userRoleInCurrentRoom === 'observer'}
                   />
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={sendingMessage}
-                    className="btn-brutal bg-purple text-white px-3 min-h-11"
-                    title="Attach file"
+                    disabled={sendingMessage || userRoleInCurrentRoom === 'observer'}
+                    className="btn-brutal bg-purple text-white px-3 min-h-11 disabled:opacity-40 disabled:cursor-not-allowed"
+                    title={userRoleInCurrentRoom === 'observer' ? 'Attachments disabled for observers' : 'Attach file'}
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
@@ -650,23 +717,17 @@ export default function Home() {
                   <button
                     type="submit"
                     disabled={sendingMessage || (!messageText.trim() && !pendingFile) || userRoleInCurrentRoom === 'observer'}
-                    className={`btn-brutal min-w-24 ${((messageText.trim() || pendingFile) && userRoleInCurrentRoom !== 'observer') ? 'bg-success text-white' : 'bg-gray-200 text-gray-500 disabled:opacity-50'}`}
+                    className={`btn-brutal min-w-24 ${((messageText.trim() || pendingFile) && userRoleInCurrentRoom !== 'observer') ? 'bg-success text-white' : 'bg-gray-200 text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed'}`}
                   >
-                    {uploadProgress !== null ? `${uploadProgress}%` : sendingMessage ? 'SENDING...' : userRoleInCurrentRoom === 'observer' ? 'OBSERVE' : 'SEND'}
+                    {uploadProgress !== null ? `${uploadProgress}%` : sendingMessage ? 'SENDING...' : userRoleInCurrentRoom === 'observer' ? 'READ ONLY' : 'SEND'}
                   </button>
                 </div>
               </form>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center bg-surface p-6">
-              <div
-                className="text-center card-brutal cursor-pointer bg-card p-10"
-                onClick={() => setShowRoomsMenu(true)}
-              >
-                <h2 className="text-3xl font-black mb-3">SELECT A ROOM</h2>
-                <p className="font-bold text-lg text-dim">Tap here to choose a room</p>
-              </div>
-            </div>
+            <StrangerChatLanding
+              onOpenSidebar={() => setShowRoomsMenu(true)}
+            />
           )}
         </main>
 

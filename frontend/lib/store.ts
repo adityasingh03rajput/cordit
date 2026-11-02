@@ -37,7 +37,9 @@ interface AppState {
   setUserRoleInCurrentRoom: (role: 'participant' | 'observer') => void;
   setSuggestions: (suggestions: Suggestion[]) => void;
   addSuggestion: (suggestion: Suggestion) => void;
+  updateSuggestionVisibility: (suggestionId: string, visible: boolean) => void;
   setShowSuggestions: (show: boolean) => void;
+  updateCurrentRoomObserverCount: (count: number) => void;
   logout: () => void;
 }
 
@@ -95,12 +97,28 @@ export const useStore = create<AppState>((set) => ({
   setMatchError: (matchError) => set({ matchError }),
   setMatchedPartner: (matchedPartner) => set({ matchedPartner }),
 
-  setUserRoleInCurrentRoom: (userRoleInCurrentRoom) => set({ userRoleInCurrentRoom }),
+  setUserRoleInCurrentRoom: (userRoleInCurrentRoom) =>
+    set((state) => (state.userRoleInCurrentRoom === userRoleInCurrentRoom ? state : { userRoleInCurrentRoom })),
   setSuggestions: (suggestions) => set({ suggestions }),
   addSuggestion: (suggestion) => set((state) => ({
     suggestions: [suggestion, ...state.suggestions],
   })),
+  updateSuggestionVisibility: (suggestionId, visible) =>
+    set((state) => ({
+      suggestions: visible
+        ? state.suggestions
+        : state.suggestions.filter((s) => s._id !== suggestionId),
+    })),
   setShowSuggestions: (showSuggestions) => set({ showSuggestions }),
+  updateCurrentRoomObserverCount: (observerCount) =>
+    set((state) => {
+      if (!state.currentRoom || state.currentRoom.observerCount === observerCount) {
+        return state;
+      }
+      return {
+        currentRoom: { ...state.currentRoom, observerCount },
+      };
+    }),
 
   logout: () => {
     if (typeof window !== 'undefined') {

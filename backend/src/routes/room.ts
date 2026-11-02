@@ -15,7 +15,13 @@ const router: Router = express.Router();
 // Get all rooms
 router.get('/', verifyToken, async (_req: Request, res: Response) => {
   try {
-    const rooms = await Room.find({ isDeleted: false })
+    const rooms = await Room.find({
+      isDeleted: false,
+      $or: [
+        { roomType: { $ne: 'stranger_chat' } },
+        { roomType: 'stranger_chat', status: 'active' },
+      ],
+    })
       .select('-activeUsers')
       .sort({ isDefault: -1, createdAt: -1 });
 

@@ -122,7 +122,10 @@ export const initializeSocket = (httpServer: HTTPServer) => {
           return;
         }
 
-        const pref = data?.genderPreference || socket.genderPreference || 'any';
+        const dbUser = await User.findById(socket.userDocId);
+        const currentGender = dbUser?.gender || socket.gender || 'other';
+        const pref = data?.genderPreference || dbUser?.genderPreference || socket.genderPreference || 'any';
+        socket.gender = currentGender;
         socket.genderPreference = pref;
 
         const queueUser = {
@@ -130,7 +133,7 @@ export const initializeSocket = (httpServer: HTTPServer) => {
           userId: socket.userDocId,
           username: socket.username || 'Anonymous',
           publicId: socket.publicId,
-          gender: socket.gender || 'other',
+          gender: currentGender,
           genderPreference: pref,
           queuedAt: Date.now(),
         };
@@ -197,6 +200,7 @@ export const initializeSocket = (httpServer: HTTPServer) => {
           });
         }
       } catch (error) {
+        console.error('DETAILED ERROR IN match:join_queue:', error);
         logger.error('Error in match:join_queue:', error);
         socket.emit('match:error', { message: 'Failed to join matching queue' });
       }

@@ -35,5 +35,13 @@ export async function ensurePublicIds(): Promise<void> {
   } catch (error) {
     logger.error('Failed to migrate public IDs:', error);
   }
+
+  try {
+    const RoomModel = (await import('../models/room')).default;
+    await RoomModel.collection.dropIndex('name_1');
+    logger.info('Dropped obsolete unique name_1 index on rooms');
+  } catch {
+    // Index not present, safe to ignore
+  }
 }
 

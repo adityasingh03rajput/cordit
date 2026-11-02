@@ -41,3 +41,7 @@ backend/local_mongodb_data/
 backend/uploads/
 local_mongodb_data/
 uploads/
+
+bin/
+*.exe
+*.zip

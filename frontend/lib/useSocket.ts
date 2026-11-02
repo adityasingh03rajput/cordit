@@ -8,10 +8,17 @@ import type { Message, FileAttachment, Suggestion } from './types';
 const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';
 
 let globalSocket: Socket | null = null;
+let currentSocketToken: string | null = null;
 let socketListenersAttached = false;
 
 const getSocket = (token: string) => {
-  if (!globalSocket || !globalSocket.connected) {
+  if (!globalSocket || !globalSocket.connected || currentSocketToken !== token) {
+    if (globalSocket) {
+      globalSocket.disconnect();
+      globalSocket = null;
+      socketListenersAttached = false;
+    }
+    currentSocketToken = token;
     globalSocket = io(SOCKET_URL, {
       auth: { token },
       transports: ['websocket', 'polling'],
@@ -36,8 +43,11 @@ export const useSocket = () => {
     setMatchError,
     setMatchedPartner,
     setCurrentRoom,
+    setRooms,
     setUserRoleInCurrentRoom,
     addSuggestion,
+    updateSuggestionVisibility,
+    updateCurrentRoomObserverCount,
   } = useStore();
 
   useEffect(() => {
@@ -76,15 +86,35 @@ export const useSocket = () => {
         roomName: string;
         roomType?: string;
         role?: 'participant' | 'observer';
+        observerCount?: number;
       }) => {
         if (data.role) {
           setUserRoleInCurrentRoom(data.role);
+        }
+        if (typeof data.observerCount === 'number') {
+          updateCurrentRoomObserverCount(data.observerCount);
         }
       });
 
       // Observer Suggestion received
       socket.on('chat:suggestion:new', (suggestion: Suggestion) => {
         addSuggestion(suggestion);
+      });
+
+      // Suggestion visibility updated
+      socket.on('chat:suggestion:visibility_updated', (data: { suggestionId: string; visible: boolean }) => {
+        updateSuggestionVisibility(data.suggestionId, data.visible);
+      });
+
+      // Global rooms updated
+      socket.on('rooms_updated', async () => {
+        try {
+          const { roomAPI } = await import('./api');
+          const data = await roomAPI.getAll();
+          setRooms(data.rooms);
+        } catch (e) {
+          console.error('Failed to refresh rooms on update:', e);
+        }
       });
 
       // Matching Socket Events
@@ -132,15 +162,16 @@ export const useSocket = () => {
     return () => {};
   }, [user, addMessage, setConnected, addTypingUser, removeTypingUser, setMatching, setMatchError, setMatchedPartner, setCurrentRoom, setUserRoleInCurrentRoom, addSuggestion]);
 
+  const currentRoomId = currentRoom?._id;
   useEffect(() => {
-    if (currentRoom && socketRef.current?.connected) {
-      socketRef.current.emit('join_room', { roomId: currentRoom._id });
+    if (currentRoomId && socketRef.current?.connected) {
+      socketRef.current.emit('join_room', { roomId: currentRoomId });
 
       return () => {
-        socketRef.current?.emit('leave_room', { roomId: currentRoom._id });
+        socketRef.current?.emit('leave_room', { roomId: currentRoomId });
       };
     }
-  }, [currentRoom]);
+  }, [currentRoomId]);
 
   const sendMessage = (text: string, attachment?: FileAttachment) => {
     if (socketRef.current && currentRoom) {
@@ -170,7 +201,6 @@ export const useSocket = () => {
 
   const leaveMatchingQueue = () => {
     if (socketRef.current) {
-      setMatching(false);
       socketRef.current.emit('match:leave_queue');
     }
   };
@@ -217,6 +247,7 @@ export const disconnectSocket = () => {
   if (globalSocket) {
     globalSocket.disconnect();
     globalSocket = null;
+    currentSocketToken = null;
     socketListenersAttached = false;
   }
 };

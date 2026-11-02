@@ -1,17 +1,21 @@
 'use client';
 
 import { useStore } from '@/lib/store';
+import { useSocket } from '@/lib/useSocket';
 import { format } from 'date-fns';
 
 export default function ObserverSuggestionsPanel() {
-  const { currentRoom, suggestions, showSuggestions } = useStore();
+  const { currentRoom, suggestions, showSuggestions, userRoleInCurrentRoom } = useStore();
+  const { toggleSuggestionVisibility } = useSocket();
 
   if (!currentRoom || currentRoom.roomType !== 'stranger_chat' || !showSuggestions || suggestions.length === 0) {
     return null;
   }
 
+  const isParticipant = userRoleInCurrentRoom === 'participant';
+
   return (
-    <div className="border-b-[3px] border-black bg-surface p-3">
+    <div className="border-b-[3px] border-black bg-surface p-2.5 sm:p-3">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-black uppercase text-purple flex items-center gap-1.5">
           <span>💡 Observer Suggestions</span>
@@ -19,25 +23,45 @@ export default function ObserverSuggestionsPanel() {
             {suggestions.length}
           </span>
         </span>
+        {isParticipant && (
+          <span className="text-[10px] font-bold text-dim">
+            Participants can dismiss suggestions individually
+          </span>
+        )}
       </div>
 
-      <div className="flex gap-2.5 overflow-x-auto pb-1">
-        {suggestions.slice(0, 5).map((sugg) => (
+      <div className="flex gap-2 sm:gap-2.5 overflow-x-auto pb-1 scrollbar-thin">
+        {suggestions.slice(0, 10).map((sugg) => (
           <div
             key={sugg._id}
-            className="card-brutal bg-white p-2.5 min-w-[240px] max-w-[320px] flex-shrink-0"
+            className="card-brutal bg-white p-2.5 min-w-[220px] max-w-[300px] flex-shrink-0 flex flex-col justify-between"
           >
-            <div className="flex items-center justify-between mb-1">
-              <span className="font-black text-[11px] text-dark">
-                #{sugg.observerPublicId} ({sugg.observerUsername})
-              </span>
-              <span className="text-[10px] font-bold text-dim">
-                {format(new Date(sugg.createdAt), 'HH:mm')}
-              </span>
+            <div>
+              <div className="flex items-center justify-between gap-1 mb-1">
+                <span className="font-black text-[11px] text-dark truncate">
+                  #{sugg.observerPublicId} ({sugg.observerUsername})
+                </span>
+                <span className="text-[10px] font-bold text-dim flex-shrink-0">
+                  {format(new Date(sugg.createdAt), 'HH:mm')}
+                </span>
+              </div>
+              <p className="text-xs font-medium text-dark line-clamp-2">
+                {sugg.content}
+              </p>
             </div>
-            <p className="text-xs font-medium text-dark line-clamp-2">
-              {sugg.content}
-            </p>
+
+            {isParticipant && (
+              <div className="mt-2 pt-1.5 border-t border-black/10 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => toggleSuggestionVisibility(sugg._id, false)}
+                  className="btn-brutal bg-surface hover:bg-error hover:text-white text-[10px] font-black px-2 py-0.5 uppercase transition-colors"
+                  title="Hide this suggestion from my view"
+                >
+                  ✕ HIDE
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>
