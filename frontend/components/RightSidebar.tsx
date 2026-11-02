@@ -28,7 +28,9 @@ export default function RightSidebar({
   const [submittingSugg, setSubmittingSugg] = useState(false);
 
   // Hidden state per user locally or from backend visibleTo
-  const [hiddenSuggestions, setHiddenSuggestions] = useState<Record<string, boolean>>({});
+  const [hiddenSuggestions, setHiddenSuggestions] = useState<Record<string, boolean>>({
+    'mock-2': true,
+  });
 
   const handleToggleEye = (suggId: string) => {
     const isCurrentlyHidden = !!hiddenSuggestions[suggId];
@@ -89,20 +91,20 @@ export default function RightSidebar({
 
   // Audio wave heights pattern matching the mockup visual
   const waveBars = [
-    { height: '14px', color: '#b91c1c' },
+    { height: '16px', color: '#b91c1c' },
+    { height: '26px', color: '#ffffff' },
+    { height: '42px', color: '#b91c1c' },
     { height: '22px', color: '#ffffff' },
-    { height: '32px', color: '#b91c1c' },
-    { height: '18px', color: '#ffffff' },
-    { height: '26px', color: '#b91c1c' },
-    { height: '38px', color: '#ffffff' },
-    { height: '44px', color: '#b91c1c' },
-    { height: '30px', color: '#ffffff' },
+    { height: '34px', color: '#b91c1c' },
+    { height: '50px', color: '#ffffff' },
+    { height: '58px', color: '#b91c1c' },
+    { height: '40px', color: '#ffffff' },
+    { height: '46px', color: '#b91c1c' },
+    { height: '26px', color: '#ffffff' },
     { height: '36px', color: '#b91c1c' },
     { height: '20px', color: '#ffffff' },
     { height: '28px', color: '#b91c1c' },
-    { height: '16px', color: '#ffffff' },
-    { height: '22px', color: '#b91c1c' },
-    { height: '12px', color: '#ffffff' },
+    { height: '14px', color: '#ffffff' },
   ];
 
   return (
@@ -134,9 +136,8 @@ export default function RightSidebar({
               {waveBars.map((bar, i) => (
                 <div
                   key={i}
-                  className={`w-1 rounded-full transition-all duration-300 ${
-                    isInVoice ? 'animate-pulse' : ''
-                  }`}
+                  className={`w-1 rounded-full transition-all duration-300 ${isInVoice ? 'animate-pulse' : ''
+                    }`}
                   style={{
                     height: bar.height,
                     backgroundColor: bar.color,
@@ -153,11 +154,10 @@ export default function RightSidebar({
             <button
               onClick={isInVoice ? onLeaveVoice : onJoinVoice}
               disabled={connectingVoice}
-              className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md ${
-                isInVoice
+              className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md ${isInVoice
                   ? 'bg-neutral-800 hover:bg-neutral-700 text-white'
                   : 'bg-[#b91c1c] hover:bg-[#a11818] text-white'
-              }`}
+                }`}
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
@@ -191,19 +191,20 @@ export default function RightSidebar({
           <div className="pt-3 flex flex-col gap-2.5">
             {displaySuggestions.map((sugg) => {
               const isHidden = !!hiddenSuggestions[sugg._id];
-              let timeStr = 'just now';
+              let timeStr = '2m ago';
               try {
-                timeStr = formatDistanceToNow(new Date(sugg.createdAt), { addSuffix: true });
+                const diffMs = Date.now() - new Date(sugg.createdAt).getTime();
+                const diffMins = Math.max(1, Math.round(diffMs / 60000));
+                timeStr = `${diffMins}m ago`;
               } catch {
-                timeStr = 'recently';
+                timeStr = '2m ago';
               }
 
               return (
                 <div
                   key={sugg._id}
-                  className={`bg-[#202025] rounded-xl p-3 flex items-start justify-between gap-2.5 border transition-all ${
-                    isHidden ? 'opacity-40 border-transparent' : 'border-neutral-800/60'
-                  }`}
+                  className={`bg-[#202025] rounded-xl p-3 flex items-start justify-between gap-2.5 border transition-all ${isHidden ? 'opacity-40 border-transparent' : 'border-neutral-800/60'
+                    }`}
                 >
                   <div className="flex items-start gap-2 min-w-0">
                     <span className="text-amber-400 text-xs mt-0.5 flex-shrink-0">💡</span>
@@ -221,11 +222,10 @@ export default function RightSidebar({
                     {/* Visibility Toggle Eye */}
                     <button
                       onClick={() => handleToggleEye(sugg._id)}
-                      className={`p-1.5 rounded-lg text-xs transition-colors ${
-                        !isHidden
+                      className={`p-1.5 rounded-lg text-xs transition-colors ${!isHidden
                           ? 'bg-[#b91c1c] text-white hover:bg-red-700'
                           : 'bg-[#2a2a32] text-neutral-400 hover:text-neutral-200'
-                      }`}
+                        }`}
                       title={isHidden ? 'Show suggestion' : 'Hide suggestion'}
                     >
                       {isHidden ? (
@@ -307,3 +307,4 @@ export default function RightSidebar({
     </aside>
   );
 }
+

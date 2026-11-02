@@ -336,14 +336,17 @@ export default function Home() {
 
   return (
     <div
-      className="h-screen w-screen overflow-hidden flex bg-[#f4f0e8] text-neutral-900 select-none"
+      className="h-screen w-screen overflow-hidden flex select-none"
       style={{
-        backgroundImage: `radial-gradient(circle at 10% 20%, rgba(0,0,0,0.015) 0%, transparent 60%), radial-gradient(circle at 90% 80%, rgba(0,0,0,0.02) 0%, transparent 60%)`,
+        backgroundImage: "url('/wallpaper.jpg')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
       }}
     >
       {/* ── 1. LEFT NAVIGATION PANEL ── */}
       <LeftNavigation
-        activeTab={activeNavTab}
+        activeTab={currentRoom?.roomType === 'stranger_chat' ? 'stranger_chat' : activeNavTab}
         onSelectTab={(tab) => setActiveNavTab(tab as any)}
         onOpenRooms={() => setShowRoomsDrawer(true)}
         onOpenMatch={() => setShowMatchingModal(true)}
@@ -379,7 +382,7 @@ export default function Home() {
         {currentRoom ? (
           <div className="flex-1 flex flex-col min-h-0 px-6 pb-5 pt-2">
             {/* Soft Warm Parchment Chat Card */}
-            <div className="flex-1 bg-[#faf8f5] rounded-3xl border border-[#e8e4dc] shadow-sm flex flex-col min-h-0 overflow-hidden relative">
+            <div className="flex-1 bg-[#faf8f5]/85 backdrop-blur-xs rounded-3xl border border-[#e8e4dc] shadow-sm flex flex-col min-h-0 overflow-hidden relative">
               {/* Date Divider (Today) */}
               <div className="flex items-center justify-center my-3.5 relative px-8 flex-shrink-0">
                 <div className="absolute inset-x-8 h-px bg-[#e8e4dc]" />
@@ -537,7 +540,7 @@ export default function Home() {
                     (!messageText.trim() && !pendingFile) ||
                     userRoleInCurrentRoom === 'observer'
                   }
-                  className="bg-[#b91c1c] hover:bg-[#a11818] text-white p-3 rounded-2xl flex items-center justify-center transition-all shadow-md disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+                  className="bg-[#b91c1c] hover:bg-[#a11818] active:scale-95 text-white p-3 rounded-2xl flex items-center justify-center transition-all shadow-md disabled:cursor-not-allowed flex-shrink-0"
                   title="Send message"
                 >
                   <svg

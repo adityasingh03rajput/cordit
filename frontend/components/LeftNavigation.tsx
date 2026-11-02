@@ -48,11 +48,10 @@ export default function LeftNavigation({
           {/* HOME */}
           <button
             onClick={() => onSelectTab?.('home')}
-            className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-bold text-xs tracking-wider transition-all text-left ${
-              activeTab === 'home'
+            className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-bold text-xs tracking-wider transition-all text-left ${activeTab === 'home'
                 ? 'bg-[#b91c1c] text-white shadow-md'
                 : 'text-neutral-400 hover:text-white hover:bg-neutral-900/60'
-            }`}
+              }`}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
@@ -67,11 +66,10 @@ export default function LeftNavigation({
               onSelectTab?.('stranger_chat');
               onOpenMatch?.();
             }}
-            className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-bold text-xs tracking-wider transition-all text-left ${
-              activeTab === 'stranger_chat'
+            className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-bold text-xs tracking-wider transition-all text-left ${activeTab === 'stranger_chat'
                 ? 'bg-[#b91c1c] text-white shadow-md'
                 : 'text-neutral-400 hover:text-white hover:bg-neutral-900/60'
-            }`}
+              }`}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -85,11 +83,10 @@ export default function LeftNavigation({
           {/* ROOMS */}
           <button
             onClick={() => onOpenRooms?.()}
-            className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-bold text-xs tracking-wider transition-all text-left ${
-              activeTab === 'rooms'
+            className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-bold text-xs tracking-wider transition-all text-left ${activeTab === 'rooms'
                 ? 'bg-[#b91c1c] text-white shadow-md'
                 : 'text-neutral-400 hover:text-white hover:bg-neutral-900/60'
-            }`}
+              }`}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="4" y1="9" x2="20" y2="9" />
@@ -103,11 +100,10 @@ export default function LeftNavigation({
           {/* VOICE ROOMS */}
           <button
             onClick={() => onSelectTab?.('voice_rooms')}
-            className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-bold text-xs tracking-wider transition-all text-left ${
-              activeTab === 'voice_rooms'
+            className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-bold text-xs tracking-wider transition-all text-left ${activeTab === 'voice_rooms'
                 ? 'bg-[#b91c1c] text-white shadow-md'
                 : 'text-neutral-400 hover:text-white hover:bg-neutral-900/60'
-            }`}
+              }`}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
@@ -120,11 +116,10 @@ export default function LeftNavigation({
           {/* LIBRARY */}
           <button
             onClick={() => onSelectTab?.('library')}
-            className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-bold text-xs tracking-wider transition-all text-left ${
-              activeTab === 'library'
+            className={`w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl font-bold text-xs tracking-wider transition-all text-left ${activeTab === 'library'
                 ? 'bg-[#b91c1c] text-white shadow-md'
                 : 'text-neutral-400 hover:text-white hover:bg-neutral-900/60'
-            }`}
+              }`}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
@@ -135,17 +130,17 @@ export default function LeftNavigation({
       </div>
 
       {/* ── BOTTOM: JAPANESE WALLPAPER ARTWORK ── */}
-      <div className="relative w-full h-52 overflow-hidden select-none pointer-events-none mt-auto">
+      <div className="relative w-full h-56 overflow-hidden select-none pointer-events-none mt-auto">
         <img
           src="/wallpaper.jpg"
           alt="Cordit Japanese aesthetic"
-          className="absolute bottom-0 left-0 w-[380px] max-w-none object-cover opacity-95"
+          className="absolute bottom-0 left-0 h-full w-auto max-w-none object-cover"
           style={{
-            transform: 'translate(-20px, 15px) scale(1.18)',
-            transformOrigin: 'bottom left',
+            objectPosition: 'bottom left',
           }}
         />
       </div>
     </aside>
   );
 }
+

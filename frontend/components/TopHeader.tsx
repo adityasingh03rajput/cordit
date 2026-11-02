@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useStore } from '@/lib/store';
 import { useRouter } from 'next/navigation';
+import { AnimeAvatar } from './MasterFeedTile';
 
 interface TopHeaderProps {
   onReport?: () => void;
@@ -146,16 +147,7 @@ export default function TopHeader({
             className="border border-neutral-300/80 bg-white/80 backdrop-blur-xs rounded-full px-3 py-1 flex items-center gap-2 shadow-xs cursor-pointer hover:bg-white transition-all"
           >
             {/* Small Anime Boy Avatar */}
-            <div className="w-6 h-6 rounded-full bg-[#18181b] border border-neutral-700 flex items-center justify-center overflow-hidden flex-shrink-0">
-              <svg viewBox="0 0 36 36" fill="none" className="w-full h-full">
-                <rect width="36" height="36" fill="#18181b" />
-                <circle cx="18" cy="15" r="7" fill="#f5d0b5" />
-                <path d="M11 15C11 10 14 8 18 8C22 8 25 10 25 15C25 16 23 18 23 18L13 18C13 18 11 16 11 15Z" fill="#18181b" />
-                <path d="M9 15C9 10 13 6 18 6C23 6 27 10 27 15" stroke="#b91c1c" strokeWidth="2.5" strokeLinecap="round" />
-                <rect x="8" y="13" width="3" height="6" rx="1.5" fill="#b91c1c" />
-                <rect x="25" y="13" width="3" height="6" rx="1.5" fill="#b91c1c" />
-              </svg>
-            </div>
+            <AnimeAvatar variant="boy" size="sm" />
 
             <span className="font-bold text-xs text-neutral-800">
               #{user?.publicId || '7368'} • {user?.username ? user.username.charAt(0).toUpperCase() + user.username.slice(1) : 'Admin'}
@@ -197,3 +189,4 @@ export default function TopHeader({
     </header>
   );
 }
+
