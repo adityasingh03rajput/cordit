@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/* Hide Next.js dev portal overlays and floating badges */
+nextjs-portal,
+#__next-build-watcher,
+[data-nextjs-toast],
+[data-nextjs-dialog-overlay] {
+  display: none !important;
+}
+
 /* Neobrutalism Design System - Enhanced Colors */
 :root {
   --bg-main: #F5F5F0;

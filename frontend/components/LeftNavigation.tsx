@@ -131,12 +131,15 @@ export default function LeftNavigation({
 
       {/* ── BOTTOM: JAPANESE WALLPAPER ARTWORK ── */}
       <div className="relative w-full h-56 overflow-hidden select-none pointer-events-none mt-auto">
-        <img
-          src="/wallpaper.jpg"
-          alt="Cordit Japanese aesthetic"
-          className="absolute bottom-0 left-0 h-full w-auto max-w-none object-cover"
+        <div
+          className="w-full h-full"
           style={{
-            objectPosition: 'bottom left',
+            backgroundImage: "url('/wallpaper.jpg')",
+            backgroundSize: '420px auto',
+            backgroundPosition: 'bottom left',
+            backgroundRepeat: 'no-repeat',
+            maskImage: 'linear-gradient(to top, black 85%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to top, black 85%, transparent 100%)',
           }}
         />
       </div>
