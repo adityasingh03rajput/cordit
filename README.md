@@ -13,6 +13,19 @@ Cordit is a lightweight communication platform with text chat, voice channels, a
 
 ## Features
 
+### 👥 Public Stranger Chat & Matching
+- **Platform-Generated Numeric Public IDs:** Users are identified by clean 4-6 digit public IDs (e.g., #7368), decoupling internal MongoDB ObjectIds.
+- **Mutual-Preference Matching Engine:** Real-time bidirectional gender-compatible matching (male, female, other vs male, female, any).
+- **Direct Public ID Search & Matching:** Directly connect with any online user by numeric public ID.
+- **100% Public Conversations & Observer Mode:** Every stranger chat is public. Third-party users can join in real-time as read-only observers without requiring approval.
+- **Observer Suggestions System:** Spectators can submit real-time suggestions; conversation participants can toggle viewing or hiding spectator advice.
+- **Server-Enforced Spectator Permissions:** Observers cannot transmit messages into the room; actions are strictly validated on the server.
+- **Safety, Moderation & Reporting:**
+  - One-click blocking: Blocked users are immediately prevented from direct requests or random matches.
+  - User reporting: Violations are logged with room context and reported user ID.
+  - Comprehensive Admin Panel: Live report review queue with direct user suspension and permanent ban controls.
+- **Permanent Local Media Storage & Direct Streaming:** Fast, non-expiring media uploads with HTTP caching and fallback.
+
 ### 💬 Real-time Chat
 - Instant messaging with typing indicators
 - Multiple rooms/channels

@@ -102,8 +102,9 @@ export const authAPI = {
     return data;
   },
 
-  register: async (username: string, password: string, inviteCode: string) => {
-    const { data } = await api.post('/user/register', { username, password, inviteCode });
+  register: async (params: { username?: string; password: string; gender?: string; genderPreference?: string; inviteCode?: string } | string, legacyPassword?: string, legacyInvite?: string) => {
+    const payload = typeof params === 'object' ? params : { username: params, password: legacyPassword!, inviteCode: legacyInvite };
+    const { data } = await api.post('/user/register', payload);
     if (typeof window !== 'undefined' && data.token && data.refreshToken) {
       localStorage.setItem('token', data.token);
       localStorage.setItem('refreshToken', data.refreshToken);
@@ -122,6 +123,21 @@ export const authAPI = {
 };
 
 export const userAPI = {
+  getByPublicId: async (publicId: number | string) => {
+    const { data } = await api.get('/user/by-id/' + publicId);
+    return data;
+  },
+
+  getMe: async () => {
+    const { data } = await api.get('/user/me');
+    return data;
+  },
+
+  updateProfile: async (gender?: string, genderPreference?: string) => {
+    const { data } = await api.put('/user/profile', { gender, genderPreference });
+    return data;
+  },
+
   getAll: async (): Promise<{ users: UserListItem[] }> => {
     const { data } = await api.get('/user');
     return data;
@@ -261,7 +277,7 @@ export const uploadAPI = {
 
     // HTTPS pages cannot call insecure presigned URLs (mixed content).
     // In that case, send bytes to backend and let backend upload to MinIO/S3.
-    if (typeof window !== 'undefined' && window.location.protocol === 'https:' && url.startsWith('http://')) {
+    if (!url.startsWith('http://') && !url.startsWith('https://') || url.includes('/upload/') || (typeof window !== 'undefined' && window.location.protocol === 'https:' && url.startsWith('http://'))) {
       return uploadViaBackend();
     }
 
@@ -294,6 +310,43 @@ export const uploadAPI = {
 
   getDownloadUrl: async (fileId: string) => {
     const { data } = await api.get(`/upload/${fileId}`);
+    return data;
+  },
+};
+
+
+export const moderationAPI = {
+  blockUser: async (publicId: number) => {
+    const { data } = await api.post('/moderation/block/' + publicId);
+    return data;
+  },
+  unblockUser: async (publicId: number) => {
+    const { data } = await api.delete('/moderation/block/' + publicId);
+    return data;
+  },
+  getBlockedUsers: async () => {
+    const { data } = await api.get('/moderation/blocks');
+    return data;
+  },
+  report: async (params: { targetPublicId: number; roomId?: string; reason: string }) => {
+    const { data } = await api.post('/moderation/report', params);
+    return data;
+  },
+  adminGetReports: async (status?: string) => {
+    const query = status ? '?status=' + status : '';
+    const { data } = await api.get('/moderation/admin/reports' + query);
+    return data;
+  },
+  adminUpdateReport: async (id: string, status: string, actionTaken?: string) => {
+    const { data } = await api.put('/moderation/admin/reports/' + id, { status, actionTaken });
+    return data;
+  },
+  adminUpdateUserStatus: async (publicId: number, status: 'active' | 'suspended' | 'banned') => {
+    const { data } = await api.put('/moderation/admin/users/' + publicId + '/status', { status });
+    return data;
+  },
+  adminTerminateRoom: async (roomId: string) => {
+    const { data } = await api.post('/moderation/admin/rooms/' + roomId + '/terminate');
     return data;
   },
 };

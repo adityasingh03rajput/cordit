@@ -7,26 +7,38 @@ import InviteCode from '../models/inviteCode';
 import validator from '../middlewares/validator';
 import verifyToken from '../middlewares/verifyToken';
 import checkRoles from '../middlewares/checkRoles';
-import { login, register } from '../validators/user';
+import { login, register, updateProfile } from '../validators/user';
 import { mongoIdSchema } from '../validators/params';
 import { config } from '../config';
 import { JwtPayload } from '../types/express';
+import { generateNumericPublicId } from '../utils/idGenerator';
 
 const router: Router = express.Router();
 
+// POST /user/login - Support login by numeric publicId or username
 router.post('/login', validator(login), async (req: Request, res: Response) => {
   try {
     const { username, password } = req.body;
 
-    const user = await User.findOne({ username, isDeleted: false }).select('+password');
+    const isNum = !isNaN(Number(username)) && String(username).trim() !== '';
+    const query = isNum
+      ? { $or: [{ publicId: Number(username) }, { username: String(username).trim() }], isDeleted: false }
+      : { username: String(username).trim(), isDeleted: false };
+
+    const user = await User.findOne(query).select('+password');
     if (!user) {
-      res.sendError(401, 'Username or password is incorrect.');
+      res.sendError(401, 'Public ID/Username or password is incorrect.');
+      return;
+    }
+
+    if (user.status === 'banned') {
+      res.sendError(403, 'This account has been banned.');
       return;
     }
 
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
-      res.sendError(401, 'Username or password is incorrect.');
+      res.sendError(401, 'Public ID/Username or password is incorrect.');
       return;
     }
 
@@ -52,72 +64,87 @@ router.post('/login', validator(login), async (req: Request, res: Response) => {
       token,
       refreshToken,
       username: user.username,
-      role: user.role
+      publicId: user.publicId,
+      gender: user.gender,
+      genderPreference: user.genderPreference,
+      role: user.role,
+      status: user.status,
     });
   } catch (error) {
     res.sendError(500, error);
   }
 });
 
-// Register new user with invite code
+// POST /user/register - Register new user and auto-assign numeric publicId
 router.post('/register', validator(register), async (req: Request, res: Response) => {
   try {
-    const { username, password, inviteCode } = req.body;
+    const { username: rawUsername, password, gender, genderPreference, inviteCode } = req.body;
 
-    // Check if username already exists
-    const existingUser = await User.findOne({ username });
-    if (existingUser) {
-      res.sendError(409, 'Username already exists');
-      return;
+    let finalUsername = rawUsername ? String(rawUsername).trim() : '';
+
+    // If username is supplied, verify it doesn't already exist
+    if (finalUsername) {
+      const existingUser = await User.findOne({ username: finalUsername });
+      if (existingUser) {
+        res.sendError(409, 'Username already exists');
+        return;
+      }
     }
 
-    // Validate invite code
-    const invite = await InviteCode.findOne({
-      code: inviteCode.toUpperCase(),
-      isDeleted: false,
-    });
+    // If inviteCode is supplied, validate it
+    let invite: any = null;
+    if (inviteCode && String(inviteCode).trim()) {
+      invite = await InviteCode.findOne({
+        code: String(inviteCode).trim().toUpperCase(),
+        isDeleted: false,
+      });
 
-    if (!invite) {
-      res.sendError(400, 'Invalid invite code');
-      return;
+      if (!invite) {
+        res.sendError(400, 'Invalid invite code');
+        return;
+      }
+
+      const now = new Date();
+      if (invite.expiresAt < now) {
+        res.sendError(400, 'Invite code has expired');
+        return;
+      }
+
+      if (invite.currentUses >= invite.maxUses) {
+        res.sendError(400, 'Invite code has been fully used');
+        return;
+      }
     }
 
-    const now = new Date();
-
-    if (invite.expiresAt < now) {
-      res.sendError(400, 'Invite code has expired');
-      return;
+    const publicId = await generateNumericPublicId();
+    if (!finalUsername) {
+      finalUsername = `User_${publicId}`;
     }
 
-    if (invite.currentUses >= invite.maxUses) {
-      res.sendError(400, 'Invite code has been fully used');
-      return;
-    }
-
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
     const newUser = new User({
-      username,
+      username: finalUsername,
+      publicId,
       password: hashedPassword,
       role: 'user',
+      gender: gender || 'other',
+      genderPreference: genderPreference || 'any',
+      status: 'active',
     });
 
     await newUser.save();
 
-    // Update invite code usage
-    invite.currentUses += 1;
-    if (invite.currentUses >= invite.maxUses) {
-      invite.isUsed = true;
+    if (invite) {
+      invite.currentUses += 1;
+      if (invite.currentUses >= invite.maxUses) {
+        invite.isUsed = true;
+      }
+      invite.usedBy = newUser._id;
+      invite.usedByUsername = finalUsername;
+      invite.usedAt = new Date();
+      await invite.save();
     }
-
-    // Store last user info (for tracking)
-    invite.usedBy = newUser._id;
-    invite.usedByUsername = username;
-    invite.usedAt = now;
-
-    await invite.save();
 
     const tokenOptions: SignOptions = { expiresIn: config.jwtExpiration as any };
     const refreshTokenOptions: SignOptions = { expiresIn: config.refreshTokenExpiration as any };
@@ -142,14 +169,90 @@ router.post('/register', validator(register), async (req: Request, res: Response
       token,
       refreshToken,
       username: newUser.username,
+      publicId: newUser.publicId,
+      gender: newUser.gender,
+      genderPreference: newUser.genderPreference,
       role: newUser.role,
+      status: newUser.status,
     });
   } catch (error) {
     res.sendError(500, error);
   }
 });
 
-// Get all users (admin only)
+// GET /user/by-id/:publicId - Look up public user profile by numeric ID
+router.get('/by-id/:publicId', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const publicId = Number(req.params.publicId);
+    if (isNaN(publicId)) {
+      res.sendError(400, 'Invalid public ID format');
+      return;
+    }
+
+    const targetUser = await User.findOne({ publicId, isDeleted: false }).select(
+      'publicId username gender status createdAt',
+    );
+
+    if (!targetUser) {
+      res.sendError(404, 'User not found');
+      return;
+    }
+
+    res.sendResponse(200, {
+      publicId: targetUser.publicId,
+      username: targetUser.username,
+      gender: targetUser.gender,
+      status: targetUser.status,
+      createdAt: targetUser.createdAt,
+    });
+  } catch (error) {
+    res.sendError(500, error);
+  }
+});
+
+// PUT /user/profile - Update gender and matching preference
+router.put('/profile', verifyToken, validator(updateProfile), async (req: Request, res: Response) => {
+  try {
+    const { gender, genderPreference } = req.body;
+    const user = await User.findOne({ username: req.user?.username, isDeleted: false });
+    if (!user) {
+      res.sendError(404, 'User not found');
+      return;
+    }
+
+    if (gender) user.gender = gender;
+    if (genderPreference) user.genderPreference = genderPreference;
+    await user.save();
+
+    res.sendResponse(200, {
+      username: user.username,
+      publicId: user.publicId,
+      gender: user.gender,
+      genderPreference: user.genderPreference,
+    });
+  } catch (error) {
+    res.sendError(500, error);
+  }
+});
+
+// GET /user/me - Current user profile
+router.get('/me', verifyToken, async (req: Request, res: Response) => {
+  try {
+    const user = await User.findOne({ username: req.user?.username, isDeleted: false }).select(
+      'username publicId role gender genderPreference status createdAt',
+    );
+    if (!user) {
+      res.sendError(404, 'User not found');
+      return;
+    }
+
+    res.sendResponse(200, { user });
+  } catch (error) {
+    res.sendError(500, error);
+  }
+});
+
+// GET /user/ - Get all users (admin only)
 router.get('/', verifyToken, checkRoles('admin'), async (_req: Request, res: Response) => {
   try {
     const users = await User.find({ isDeleted: false })
@@ -162,7 +265,7 @@ router.get('/', verifyToken, checkRoles('admin'), async (_req: Request, res: Res
   }
 });
 
-// Delete user (admin only - soft delete)
+// DELETE /user/:id - Soft delete user (admin only)
 router.delete('/:id', verifyToken, checkRoles('admin'), validator(mongoIdSchema, 'params'), async (req: Request, res: Response) => {
   try {
     const userToDelete = await User.findOne({ _id: req.params.id, isDeleted: false });
@@ -171,26 +274,22 @@ router.delete('/:id', verifyToken, checkRoles('admin'), validator(mongoIdSchema,
       return;
     }
 
-    // Prevent admin from deleting themselves
     if (userToDelete.username === req.user?.username) {
       res.sendError(403, 'You cannot delete yourself');
       return;
     }
 
-    // Prevent deleting other admins
     if (userToDelete.role === 'admin') {
       res.sendError(403, 'Cannot delete admin users');
       return;
     }
 
-    // Get admin user from database to get ObjectId
     const adminUser = await User.findOne({ username: req.user?.username });
     if (!adminUser) {
       res.sendError(404, 'Admin user not found');
       return;
     }
 
-    // Soft delete the user
     userToDelete.isDeleted = true;
     userToDelete.deletedAt = new Date();
     userToDelete.deletedBy = adminUser._id;
@@ -202,6 +301,7 @@ router.delete('/:id', verifyToken, checkRoles('admin'), validator(mongoIdSchema,
   }
 });
 
+// POST /user/refresh - Refresh access token
 router.post('/refresh', async (req: Request, res: Response) => {
   try {
     const { refreshToken } = req.body;
@@ -219,13 +319,18 @@ router.post('/refresh', async (req: Request, res: Response) => {
       return;
     }
 
-    const user = await User.findOne({ 
-      username: decoded.username, 
-      isDeleted: false 
+    const user = await User.findOne({
+      username: decoded.username,
+      isDeleted: false,
     }).select('+refreshToken');
 
     if (!user || !user.refreshToken || user.refreshToken !== refreshToken) {
       res.sendError(401, 'Invalid refresh token');
+      return;
+    }
+
+    if (user.status === 'banned') {
+      res.sendError(403, 'This account has been banned.');
       return;
     }
 

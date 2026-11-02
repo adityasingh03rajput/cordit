@@ -1,18 +1,49 @@
 import express, { Router, Request, Response } from 'express';
 import { randomUUID } from 'crypto';
+import path from 'path';
+import fs from 'fs';
 import verifyToken from '../middlewares/verifyToken';
 import validator from '../middlewares/validator';
 import { requestUpload } from '../validators/upload';
 import FileUpload from '../models/fileUpload';
 import User from '../models/user';
-import { config } from '../config';
-import { generateUploadUrl, generateDownloadUrl, uploadObject } from '../utils/s3';
+import { uploadObject } from '../utils/s3';
 
 const router: Router = express.Router();
 
 const MAX_QUOTA_BYTES = 500 * 1024 * 1024; // 500MB per user
+const LOCAL_UPLOADS_DIR = path.resolve(__dirname, '../../uploads');
 
-// POST /upload/request - Get a presigned upload URL
+if (!fs.existsSync(LOCAL_UPLOADS_DIR)) {
+  fs.mkdirSync(LOCAL_UPLOADS_DIR, { recursive: true });
+}
+
+// GET /upload/:id/file - Stream file content directly (works with <img> tags)
+router.get('/:id/file', async (req: Request, res: Response) => {
+  try {
+    const fileUpload = await FileUpload.findById(req.params.id);
+    if (!fileUpload) {
+      res.status(404).send('File not found');
+      return;
+    }
+
+    const filePath = fileUpload.localPath || path.join(LOCAL_UPLOADS_DIR, `${fileUpload._id}_${fileUpload.originalName}`);
+    if (fs.existsSync(filePath)) {
+      res.setHeader('Content-Type', fileUpload.mimeType);
+      res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(fileUpload.originalName)}"`);
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      const stream = fs.createReadStream(filePath);
+      stream.pipe(res);
+      return;
+    }
+
+    res.status(404).send('File content not found on server');
+  } catch {
+    res.status(500).send('Failed to serve file');
+  }
+});
+
+// POST /upload/request - Get an upload URL
 router.post('/request', verifyToken, validator(requestUpload), async (req: Request, res: Response) => {
   try {
     const { fileName, mimeType, fileSize } = req.body;
@@ -29,7 +60,7 @@ router.post('/request', verifyToken, validator(requestUpload), async (req: Reque
       return;
     }
 
-    // Check quota: sum of user's active (non-expired) file sizes
+    // Check quota: sum of user's active file sizes
     const activeFiles = await FileUpload.aggregate([
       { $match: { userId: user._id, expiresAt: { $gt: new Date() } } },
       { $group: { _id: null, totalSize: { $sum: '$fileSize' } } },
@@ -46,8 +77,8 @@ router.post('/request', verifyToken, validator(requestUpload), async (req: Reque
     // Generate unique S3 key
     const s3Key = `uploads/${user._id}/${randomUUID()}/${fileName}`;
 
-    // Create FileUpload record
-    const expiresAt = new Date(Date.now() + config.upload.fileExpiryHours * 60 * 60 * 1000);
+    // Create FileUpload record with permanent (10 years) expiration
+    const expiresAt = new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000);
     const fileUpload = new FileUpload({
       userId: user._id,
       username,
@@ -60,9 +91,8 @@ router.post('/request', verifyToken, validator(requestUpload), async (req: Reque
 
     await fileUpload.save();
 
-    // Generate presigned upload URL
-    const uploadUrl = await generateUploadUrl(s3Key, mimeType, fileSize);
-    const downloadUrl = await generateDownloadUrl(s3Key);
+    const uploadUrl = `/api/upload/${fileUpload._id}/content`;
+    const downloadUrl = `/api/upload/${fileUpload._id}/file`;
 
     res.sendResponse(200, {
       uploadUrl,
@@ -75,7 +105,7 @@ router.post('/request', verifyToken, validator(requestUpload), async (req: Reque
   }
 });
 
-// PUT /upload/:id/content - Upload file bytes through backend (HTTPS-safe fallback)
+// PUT /upload/:id/content - Upload file bytes directly to server disk (and S3 if available)
 router.put('/:id/content', verifyToken, express.raw({ type: '*/*', limit: '110mb' }), async (req: Request, res: Response) => {
   try {
     const username = req.user?.username;
@@ -95,11 +125,6 @@ router.put('/:id/content', verifyToken, express.raw({ type: '*/*', limit: '110mb
       return;
     }
 
-    if (fileUpload.expiresAt < new Date()) {
-      res.sendError(410, 'File has expired');
-      return;
-    }
-
     const body = req.body as Buffer;
     if (!Buffer.isBuffer(body) || body.length === 0) {
       res.sendError(400, 'No file content provided');
@@ -111,7 +136,19 @@ router.put('/:id/content', verifyToken, express.raw({ type: '*/*', limit: '110mb
       return;
     }
 
-    await uploadObject(fileUpload.s3Key, body, fileUpload.mimeType, fileUpload.fileSize);
+    // Save to local disk
+    const filePath = path.join(LOCAL_UPLOADS_DIR, `${fileUpload._id}_${fileUpload.originalName}`);
+    fs.writeFileSync(filePath, body);
+
+    fileUpload.localPath = filePath;
+    await fileUpload.save();
+
+    // S3/MinIO sync fallback
+    try {
+      await uploadObject(fileUpload.s3Key, body, fileUpload.mimeType, fileUpload.fileSize);
+    } catch {
+      // MinIO not running, local storage is active
+    }
 
     res.sendResponse(200, { uploaded: true });
   } catch {
@@ -128,12 +165,7 @@ router.get('/:id', verifyToken, async (req: Request, res: Response) => {
       return;
     }
 
-    if (fileUpload.expiresAt < new Date()) {
-      res.sendError(410, 'File has expired');
-      return;
-    }
-
-    const downloadUrl = await generateDownloadUrl(fileUpload.s3Key);
+    const downloadUrl = `/api/upload/${fileUpload._id}/file`;
 
     res.sendResponse(200, {
       downloadUrl,

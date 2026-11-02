@@ -44,6 +44,10 @@ export default function LoginPage() {
 
       const user = {
         username: data.username,
+        publicId: data.publicId,
+        gender: data.gender,
+        genderPreference: data.genderPreference,
+        status: data.status,
         role: data.role,
         token: data.token,
       };
@@ -65,18 +69,18 @@ export default function LoginPage() {
       <div className="card-brutal bg-card w-full max-w-md p-6">
         <div className="mb-6 text-center">
           <h1 className="text-4xl font-black text-dark mb-2">CORDIT</h1>
-          <p className="text-sm font-medium text-dim">Voice chat + messaging</p>
+          <p className="text-sm font-medium text-dim">Public stranger chat + voice</p>
         </div>
 
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
           <div>
-            <label className="block text-sm font-bold mb-2 text-dark">USERNAME</label>
+            <label className="block text-sm font-bold mb-2 text-dark">PUBLIC ID OR USERNAME</label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="input-brutal w-full"
-              placeholder="admin"
+              placeholder="e.g. 2134 or admin"
               required
               autoFocus
             />
@@ -103,20 +107,20 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="btn-brutal w-full bg-primary text-white py-3"
+            className="btn-brutal gradient-yellow w-full py-3 font-black text-dark tracking-wide"
           >
             {loading ? 'LOGGING IN...' : 'LOGIN'}
           </button>
-
-          <div className="text-center border-t-[3px] border-border pt-4 mt-4">
-            <p className="text-sm font-medium text-dim">
-              Need an account?{' '}
-              <Link href="/register" className="font-bold underline text-dark">
-                REGISTER HERE
-              </Link>
-            </p>
-          </div>
         </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-sm font-bold text-dim">
+            Don&apos;t have an account?{' '}
+            <Link href="/register" className="text-dark underline hover:text-purple">
+              Create account & get Public ID
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import { createRoom, updateRoom } from '../validators/room';
 import { mongoIdSchema } from '../validators/params';
 import Room from '../models/room';
 import Message from '../models/message';
+import Suggestion from '../models/suggestion';
 import { createLiveKitToken, createLiveKitRoom, deleteLiveKitRoom, getLiveKitRoom, removeParticipant } from '../utils/livekit';
 
 const router: Router = express.Router();
@@ -37,6 +38,36 @@ router.get('/', verifyToken, async (_req: Request, res: Response) => {
   }
 });
 
+// GET /room/stranger/active - List active public stranger chats
+router.get('/stranger/active', verifyToken, async (_req: Request, res: Response) => {
+  try {
+    const rooms = await Room.find({
+      roomType: 'stranger_chat',
+      status: 'active',
+      isDeleted: false,
+    })
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    res.sendResponse(200, { rooms });
+  } catch (error) {
+    res.sendError(500, error);
+  }
+});
+
+// GET /room/:id/suggestions - List suggestions in room
+router.get('/:id/suggestions', verifyToken, validator(mongoIdSchema, 'params'), async (req: Request, res: Response) => {
+  try {
+    const suggestions = await Suggestion.find({ roomId: req.params.id })
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    res.sendResponse(200, { suggestions });
+  } catch (error) {
+    res.sendError(500, error);
+  }
+});
+
 // Get room by ID with details
 router.get('/:id', verifyToken, validator(mongoIdSchema, 'params'), async (req: Request, res: Response) => {
   try {
@@ -58,10 +89,9 @@ router.get('/:id', verifyToken, validator(mongoIdSchema, 'params'), async (req: 
   }
 });
 
-// Create a new room (admin only)
-router.post('/', verifyToken, checkRoles('admin'), validator(createRoom), async (req: Request, res: Response) => {
+// Create a new room
+router.post('/', verifyToken, validator(createRoom), async (req: Request, res: Response) => {
   try {
-
     const { name, description, maxUsers } = req.body;
 
     const existingRoom = await Room.findOne({ name, isDeleted: false });
@@ -73,20 +103,24 @@ router.post('/', verifyToken, checkRoles('admin'), validator(createRoom), async 
     // Generate unique LiveKit room name
     const livekitRoomName = `room_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-    // Create LiveKit room
-    await createLiveKitRoom(livekitRoomName, maxUsers);
+    // Create LiveKit room if available
+    try {
+      await createLiveKitRoom(livekitRoomName, maxUsers);
+    } catch (lkErr) {
+      console.warn('LiveKit server offline, proceeding without voice initialization:', lkErr);
+    }
 
     const room = new Room({
       name,
       description,
-      maxUsers,
+      maxUsers: maxUsers || 100,
       isDefault: false,
       activeUsers: [],
       livekitRoomName,
     });
 
     await room.save();
-    res.sendResponse(201, room);
+    res.sendResponse(201, { room });
   } catch (error) {
     res.sendError(500, error);
   }
@@ -208,9 +242,7 @@ router.post('/:id/join', verifyToken, validator(mongoIdSchema, 'params'), async 
             throw error;
           }
         } catch (innerError) {
-          console.error('Error creating LiveKit room on join:', innerError);
-          res.sendError(500, 'Failed to initialize voice for this room');
-          return;
+          console.warn('LiveKit server offline, proceeding without voice:', innerError);
         }
       }
     }

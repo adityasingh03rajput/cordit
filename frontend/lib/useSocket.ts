@@ -3,10 +3,8 @@
 import { useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useStore } from './store';
-import type { Message, FileAttachment } from './types';
+import type { Message, FileAttachment, Suggestion } from './types';
 
-// Socket.io connects to backend public URL (for browser access)
-// Uses NEXT_PUBLIC_BACKEND_URL from environment
 const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';
 
 let globalSocket: Socket | null = null;
@@ -34,6 +32,12 @@ export const useSocket = () => {
     setConnected,
     addTypingUser,
     removeTypingUser,
+    setMatching,
+    setMatchError,
+    setMatchedPartner,
+    setCurrentRoom,
+    setUserRoleInCurrentRoom,
+    addSuggestion,
   } = useStore();
 
   useEffect(() => {
@@ -51,18 +55,11 @@ export const useSocket = () => {
 
       socket.on('disconnect', () => {
         setConnected(false);
+        setMatching(false);
       });
 
       socket.on('new_message', (message: Message) => {
         addMessage(message);
-      });
-
-      socket.on('user_joined', () => {
-        // User Has Joined
-      });
-
-      socket.on('user_left', () => {
-        // User Has Left
       });
 
       socket.on('user_typing', (data: { username: string; isTyping: boolean }) => {
@@ -74,14 +71,66 @@ export const useSocket = () => {
         }
       });
 
+      socket.on('joined_room', (data: {
+        roomId: string;
+        roomName: string;
+        roomType?: string;
+        role?: 'participant' | 'observer';
+      }) => {
+        if (data.role) {
+          setUserRoleInCurrentRoom(data.role);
+        }
+      });
+
+      // Observer Suggestion received
+      socket.on('chat:suggestion:new', (suggestion: Suggestion) => {
+        addSuggestion(suggestion);
+      });
+
+      // Matching Socket Events
+      socket.on('match:waiting', () => {
+        setMatching(true);
+        setMatchError(null);
+      });
+
+      socket.on('match:left_queue', () => {
+        setMatching(false);
+      });
+
+      socket.on('match:error', (data: { message: string }) => {
+        setMatching(false);
+        setMatchError(data.message || 'Matching error occurred');
+      });
+
+      socket.on('match:found', (data: {
+        roomId: string;
+        roomName: string;
+        partner: { publicId: number; username: string; gender: string };
+        role: string;
+      }) => {
+        setMatching(false);
+        setMatchError(null);
+        setMatchedPartner(data.partner);
+        setUserRoleInCurrentRoom('participant');
+
+        setCurrentRoom({
+          _id: data.roomId,
+          name: data.roomName,
+          roomType: 'stranger_chat',
+          role: 'participant',
+          isDefault: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      });
+
       socket.on('error', (error: { message: string }) => {
         console.error('Socket error:', error.message);
       });
     }
 
-    return () => {
-    };
-  }, [user, addMessage, setConnected, addTypingUser, removeTypingUser]);
+    return () => {};
+  }, [user, addMessage, setConnected, addTypingUser, removeTypingUser, setMatching, setMatchError, setMatchedPartner, setCurrentRoom, setUserRoleInCurrentRoom, addSuggestion]);
 
   useEffect(() => {
     if (currentRoom && socketRef.current?.connected) {
@@ -111,7 +160,57 @@ export const useSocket = () => {
     }
   };
 
-  return { sendMessage, startTyping, stopTyping, socket: globalSocket };
+  const joinMatchingQueue = (genderPreference?: 'male' | 'female' | 'any') => {
+    if (socketRef.current) {
+      setMatching(true);
+      setMatchError(null);
+      socketRef.current.emit('match:join_queue', { genderPreference });
+    }
+  };
+
+  const leaveMatchingQueue = () => {
+    if (socketRef.current) {
+      setMatching(false);
+      socketRef.current.emit('match:leave_queue');
+    }
+  };
+
+  const requestDirectMatch = (targetPublicId: number) => {
+    if (socketRef.current) {
+      setMatchError(null);
+      socketRef.current.emit('match:direct_request', { targetPublicId });
+    }
+  };
+
+  const sendSuggestion = (content: string) => {
+    if (socketRef.current && currentRoom) {
+      socketRef.current.emit('chat:suggestion:send', {
+        roomId: currentRoom._id,
+        content,
+      });
+    }
+  };
+
+  const toggleSuggestionVisibility = (suggestionId: string, visible: boolean) => {
+    if (socketRef.current) {
+      socketRef.current.emit('chat:suggestion:toggle_visibility', {
+        suggestionId,
+        visible,
+      });
+    }
+  };
+
+  return {
+    sendMessage,
+    startTyping,
+    stopTyping,
+    joinMatchingQueue,
+    leaveMatchingQueue,
+    requestDirectMatch,
+    sendSuggestion,
+    toggleSuggestionVisibility,
+    socket: globalSocket,
+  };
 };
 
 export const disconnectSocket = () => {

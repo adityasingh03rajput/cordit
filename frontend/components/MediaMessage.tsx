@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
-import { uploadAPI } from '@/lib/api';
 import type { FileAttachment } from '@/lib/types';
 
 interface MediaMessageProps {
@@ -12,38 +10,20 @@ interface MediaMessageProps {
 }
 
 export default function MediaMessage({ attachment, cachedUrl, onUrlLoaded }: MediaMessageProps) {
-  const [url, setUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(!cachedUrl);
+  const directUrl = `/api/upload/${attachment.fileId}/file`;
+  const [url, setUrl] = useState<string>(cachedUrl || directUrl);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     if (cachedUrl) {
+      setUrl(cachedUrl);
       return;
     }
+    setUrl(directUrl);
+    onUrlLoaded?.(attachment.fileId, directUrl);
+  }, [attachment.fileId, cachedUrl, directUrl, onUrlLoaded]);
 
-    let cancelled = false;
-    const loadUrl = async () => {
-      try {
-        const data = await uploadAPI.getDownloadUrl(attachment.fileId);
-        if (!cancelled) {
-          setUrl(data.downloadUrl);
-          setLoading(false);
-          onUrlLoaded?.(attachment.fileId, data.downloadUrl);
-        }
-      } catch {
-        if (!cancelled) {
-          setError(true);
-          setLoading(false);
-        }
-      }
-    };
-
-    loadUrl();
-    return () => { cancelled = true; };
-  }, [attachment.fileId, cachedUrl, onUrlLoaded]);
-
-  const displayUrl = cachedUrl || url;
-  const isLoading = !cachedUrl && loading;
+  const displayUrl = cachedUrl || url || directUrl;
 
   const formatSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes}B`;
@@ -51,18 +31,10 @@ export default function MediaMessage({ attachment, cachedUrl, onUrlLoaded }: Med
     return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
   };
 
-  if (isLoading) {
-    return (
-      <div className="mt-2 p-3 border-2 border-black bg-surface rounded" style={{ borderRadius: 0 }}>
-        <span className="text-xs font-bold">Loading media...</span>
-      </div>
-    );
-  }
-
   if (error || !displayUrl) {
     return (
       <div className="mt-2 p-3 border-2 border-black bg-surface rounded" style={{ borderRadius: 0 }}>
-        <span className="text-xs font-bold text-error">Media expired or unavailable</span>
+        <span className="text-xs font-bold text-error">Media unavailable</span>
       </div>
     );
   }
@@ -75,16 +47,13 @@ export default function MediaMessage({ attachment, cachedUrl, onUrlLoaded }: Med
     <div className="mt-2">
       {isImage && (
         <a href={displayUrl} target="_blank" rel="noopener noreferrer">
-          <Image
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src={displayUrl}
             alt={attachment.fileName}
-            width={800}
-            height={600}
-            unoptimized
             className="border-2 border-black"
             style={{ maxWidth: '100%', maxHeight: 300, width: 'auto', height: 'auto', borderRadius: 0, objectFit: 'contain' }}
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
+            onError={() => {
               setError(true);
             }}
           />
@@ -120,9 +89,6 @@ export default function MediaMessage({ attachment, cachedUrl, onUrlLoaded }: Med
         </span>
         <span className="badge-brutal text-xs bg-surface px-1 py-0">
           {formatSize(attachment.fileSize)}
-        </span>
-        <span className="badge-brutal text-xs px-1 py-0" style={{ background: 'var(--bg-accent)', color: 'var(--text-dark)' }}>
-          24h
         </span>
       </div>
     </div>

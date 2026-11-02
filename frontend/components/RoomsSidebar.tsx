@@ -64,11 +64,13 @@ export default function RoomsSidebar({
                   background:
                     currentRoomId === room._id
                       ? 'var(--bg-accent)'
-                      : index % 3 === 0
-                        ? 'var(--bg-card)'
-                        : index % 3 === 1
-                          ? 'var(--bg-success)'
-                          : 'var(--bg-purple)',
+                      : room.roomType === 'stranger_chat'
+                        ? 'var(--yellow)'
+                        : index % 3 === 0
+                          ? 'var(--bg-card)'
+                          : index % 3 === 1
+                            ? 'var(--bg-success)'
+                            : 'var(--bg-purple)',
                   width: '100%',
                   padding: '1rem',
                   cursor: 'pointer',
@@ -79,14 +81,24 @@ export default function RoomsSidebar({
                 }}
               >
                 <div>
-                  <div className="font-black text-sm">{room.name}</div>
+                  <div className="font-black text-sm flex items-center gap-1.5">
+                    {room.roomType === 'stranger_chat' && <span>👁</span>}
+                    <span>{room.name}</span>
+                  </div>
+                  {room.roomType === 'stranger_chat' && (
+                    <div className="text-[10px] font-black uppercase text-purple mt-0.5">
+                      Public Stranger Conversation (Tap to observe)
+                    </div>
+                  )}
                   {room.description && (
                     <div className="text-xs mt-1" style={{ opacity: 0.7 }}>
                       {room.description}
                     </div>
                   )}
                 </div>
-                <span className="badge-brutal">{room.name.charAt(0).toUpperCase()}</span>
+                <span className="badge-brutal">
+                  {room.roomType === 'stranger_chat' ? 'LIVE' : room.name.charAt(0).toUpperCase()}
+                </span>
               </button>
             ))}
           </div>
@@ -118,22 +130,24 @@ export default function RoomsSidebar({
                 background:
                   currentRoomId === room._id
                     ? 'var(--bg-accent)'
-                    : index % 3 === 0
-                      ? 'var(--bg-card)'
-                      : index % 3 === 1
-                        ? 'var(--bg-success)'
-                        : 'var(--bg-purple)',
+                    : room.roomType === 'stranger_chat'
+                      ? 'var(--yellow)'
+                      : index % 3 === 0
+                        ? 'var(--bg-card)'
+                        : index % 3 === 1
+                          ? 'var(--bg-success)'
+                          : 'var(--bg-purple)',
                 width: '100%',
                 height: '56px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1.5rem',
+                fontSize: room.roomType === 'stranger_chat' ? '1.25rem' : '1.5rem',
                 cursor: 'pointer',
               }}
-              title={room.name}
+              title={room.roomType === 'stranger_chat' ? `[PUBLIC CHAT] ${room.name}` : room.name}
             >
-              {room.name.charAt(0).toUpperCase()}
+              {room.roomType === 'stranger_chat' ? '👁' : room.name.charAt(0).toUpperCase()}
             </button>
           ))}
           <button

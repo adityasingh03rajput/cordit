@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import { useSocket } from '@/lib/useSocket';
-import { roomAPI, messageAPI, uploadAPI } from '@/lib/api';
+import { roomAPI, messageAPI, uploadAPI, moderationAPI } from '@/lib/api';
 import { format } from 'date-fns';
 import type { FileAttachment } from '@/lib/types';
 import VoiceChat from '@/components/VoiceChat';
@@ -13,16 +13,82 @@ import RoomsSidebar from '@/components/RoomsSidebar';
 import HamburgerMenu from '@/components/HamburgerMenu';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import MediaMessage from '@/components/MediaMessage';
+import MatchingModal from '@/components/MatchingModal';
+import PublicDisclosureBanner from '@/components/PublicDisclosureBanner';
+import ObserverSuggestionsPanel from '@/components/ObserverSuggestionsPanel';
+import ReportModal from '@/components/ReportModal';
 
 export default function Home() {
   const router = useRouter();
-  const { user, currentRoom, rooms, messages, isConnected, typingUsers, setCurrentRoom, setRooms, setMessages, logout } = useStore();
+  const { user, currentRoom, rooms, messages, isConnected, typingUsers, userRoleInCurrentRoom, setSuggestions, setCurrentRoom, setRooms, setMessages, logout } = useStore();
   const { sendMessage, startTyping, stopTyping } = useSocket();
 
   const [messageText, setMessageText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [showCreateRoom, setShowCreateRoom] = useState(false);
+  const [showMatchingModal, setShowMatchingModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const matchedPartner = useStore((state) => state.matchedPartner);
+
+  const handleBlockPartner = async () => {
+    if (!matchedPartner) return;
+    if (window.confirm(`Block #${matchedPartner.publicId}? You will never be matched with this user again.`)) {
+      try {
+        await moderationAPI.blockUser(matchedPartner.publicId);
+        alert(`User #${matchedPartner.publicId} blocked successfully.`);
+      } catch (err: unknown) {
+        const errorObj = err as { response?: { data?: { error?: string } } };
+        alert(errorObj.response?.data?.error || 'Failed to block user');
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (matchedPartner) {
+      setShowMatchingModal(false);
+    }
+  }, [matchedPartner]);
+  const [newRoomName, setNewRoomName] = useState('');
+  const [newRoomDescription, setNewRoomDescription] = useState('');
+  const [newRoomMaxUsers, setNewRoomMaxUsers] = useState(100);
+  const [creatingRoom, setCreatingRoom] = useState(false);
+  const [createRoomError, setCreateRoomError] = useState('');
+
+  const handleCreateRoomSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newRoomName.trim()) return;
+
+    setCreatingRoom(true);
+    setCreateRoomError('');
+
+    try {
+      const data = await roomAPI.create(
+        newRoomName.trim(),
+        newRoomDescription.trim() || undefined,
+        Number(newRoomMaxUsers) || 100
+      );
+
+      const createdRoom = (data as any).room || data;
+      setRooms([...rooms, createdRoom]);
+      setCurrentRoom(createdRoom);
+      setShowCreateRoom(false);
+      setNewRoomName('');
+      setNewRoomDescription('');
+      setNewRoomMaxUsers(100);
+
+      if (createdRoom._id) {
+        await roomAPI.join(createdRoom._id);
+        const messagesData = await messageAPI.getByRoom(createdRoom._id);
+        setMessages(messagesData.messages || []);
+      }
+    } catch (err: unknown) {
+      const errorObj = err as { response?: { data?: { error?: string } } };
+      setCreateRoomError(errorObj.response?.data?.error || 'Failed to create room');
+    } finally {
+      setCreatingRoom(false);
+    }
+  };
   const [showRoomsMenu, setShowRoomsMenu] = useState(false);
   const [isInVoice, setIsInVoice] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -297,9 +363,16 @@ export default function Home() {
               </p>
             </div>
           </div>
+
           <div className="hidden md:flex items-center gap-3">
-            <span className="badge-brutal bg-yellow text-dark">
-              {user.username}
+            <button
+              onClick={() => setShowMatchingModal(true)}
+              className="btn-brutal gradient-yellow text-dark font-black px-4 py-2 uppercase hover:brightness-105"
+            >
+              FIND STRANGER
+            </button>
+            <span className="badge-brutal bg-yellow text-dark font-black">
+              {user.publicId ? `#${user.publicId} • ` : ''}{user.username}
             </span>
             {user.role === 'admin' && (
               <button onClick={() => router.push('/admin')} className="btn-brutal bg-cyan text-white px-4 py-2">
@@ -310,9 +383,15 @@ export default function Home() {
               LOGOUT
             </button>
           </div>
-          <div className="md:hidden flex items-center gap-3">
-            <span className="badge-brutal bg-yellow text-dark text-xs px-2 py-1">
-              {user.username.slice(0, 5)}
+          <div className="md:hidden flex items-center gap-2">
+            <button
+              onClick={() => setShowMatchingModal(true)}
+              className="btn-brutal gradient-yellow text-dark font-black px-2 py-1 text-xs uppercase"
+            >
+              MATCH
+            </button>
+            <span className="badge-brutal bg-yellow text-dark text-xs px-2 py-1 font-black">
+              {user.publicId ? `#${user.publicId}` : user.username.slice(0, 5)}
             </span>
             <button onClick={logout} className="btn-brutal bg-error text-white h-9 px-3 text-xs">
               OUT
@@ -344,28 +423,132 @@ export default function Home() {
 
         <main className="flex-1 flex flex-col pb-safe">
           {showCreateRoom ? (
-            <div className="flex-1 flex items-center justify-center bg-surface p-6">
-              <div className="text-center card-brutal bg-card p-10 max-w-md">
-                <h2 className="text-3xl font-black mb-3 text-accent">CREATE NEW ROOM</h2>
-                <p className="font-bold text-lg mb-4 text-dim">
-                  This feature is coming soon!
-                </p>
-                <p className="font-medium text-sm mb-6 text-dim">
-                  You&apos;ll be able to create custom rooms with voice chat support, set descriptions, and invite members.
-                </p>
-                <button
-                  onClick={() => setShowCreateRoom(false)}
-                  className="btn-brutal bg-accent text-dark px-6 py-3"
-                >
-                  BACK TO CHAT
-                </button>
+            <div className="flex-1 flex items-center justify-center bg-surface p-6 overflow-y-auto">
+              <div className="card-brutal bg-card p-8 sm:p-10 max-w-lg w-full text-left">
+                <div className="flex items-center justify-between mb-6 border-b-[3px] border-black pb-4">
+                  <h2 className="text-2xl sm:text-3xl font-black text-accent">CREATE A ROOM</h2>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCreateRoom(false);
+                      setCreateRoomError('');
+                    }}
+                    className="btn-brutal bg-error text-white px-3 py-1 text-sm font-black"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {createRoomError && (
+                  <div className="card-brutal bg-error text-white p-3 mb-5 font-bold text-sm">
+                    {createRoomError}
+                  </div>
+                )}
+
+                <form onSubmit={handleCreateRoomSubmit} className="flex flex-col gap-5">
+                  <div>
+                    <label className="block font-black text-sm uppercase tracking-wider mb-2">
+                      Room Name <span className="text-error">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      minLength={3}
+                      maxLength={100}
+                      value={newRoomName}
+                      onChange={(e) => setNewRoomName(e.target.value)}
+                      placeholder="e.g. general, gaming, music-lounge"
+                      className="input-brutal w-full p-3 font-bold"
+                      style={{ background: 'var(--bg-main)' }}
+                    />
+                    <span className="text-xs font-bold opacity-60 mt-1 block">Between 3 and 100 characters</span>
+                  </div>
+
+                  <div>
+                    <label className="block font-black text-sm uppercase tracking-wider mb-2">
+                      Topic / Description (Optional)
+                    </label>
+                    <textarea
+                      maxLength={500}
+                      rows={3}
+                      value={newRoomDescription}
+                      onChange={(e) => setNewRoomDescription(e.target.value)}
+                      placeholder="What is this channel about?"
+                      className="input-brutal w-full p-3 font-medium text-sm resize-none"
+                      style={{ background: 'var(--bg-main)' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-black text-sm uppercase tracking-wider mb-2">
+                      Max Participants
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        min={1}
+                        max={500}
+                        value={newRoomMaxUsers}
+                        onChange={(e) => setNewRoomMaxUsers(parseInt(e.target.value, 10) || 1)}
+                        className="input-brutal w-32 p-3 font-bold"
+                        style={{ background: 'var(--bg-main)' }}
+                      />
+                      <span className="text-xs font-bold opacity-70">users capacity</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3 pt-4 border-t-[3px] border-black">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCreateRoom(false);
+                        setCreateRoomError('');
+                      }}
+                      className="btn-brutal px-5 py-2.5 font-bold"
+                      style={{ background: 'var(--bg-secondary)' }}
+                    >
+                      CANCEL
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={creatingRoom || !newRoomName.trim()}
+                      className="btn-brutal px-7 py-2.5 font-black text-dark"
+                      style={{ background: 'var(--bg-accent)' }}
+                    >
+                      {creatingRoom ? 'CREATING...' : 'CREATE ROOM'}
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           ) : currentRoom ? (
             <>
-              <div className="gradient-yellow px-6 py-4 border-b-[3px] border-black">
+              <div className="gradient-yellow px-6 py-4 border-b-[3px] border-black flex items-center justify-between">
                 <h2 className="text-xl font-black"># {currentRoom.name}</h2>
+                {currentRoom.roomType === 'stranger_chat' && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setShowReportModal(true)}
+                      className="btn-brutal bg-white text-error font-black text-xs px-3 py-1.5 uppercase hover:bg-error hover:text-white transition-colors"
+                      title="Report this user or room"
+                    >
+                      🛡️ REPORT
+                    </button>
+                    {matchedPartner && (
+                      <button
+                        onClick={handleBlockPartner}
+                        className="btn-brutal bg-error text-white font-black text-xs px-3 py-1.5 uppercase hover:brightness-110"
+                        title="Block this partner from future matches"
+                      >
+                        🚫 BLOCK #{matchedPartner.publicId}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
+
+              <PublicDisclosureBanner />
+              <ObserverSuggestionsPanel />
 
               <div className="flex-1 overflow-y-auto bg-muted p-6">
                 <div className="flex flex-col gap-4">
@@ -459,17 +642,17 @@ export default function Home() {
                     type="text"
                     value={messageText}
                     onChange={(e) => handleTyping(e.target.value)}
-                    placeholder="Type your message..."
-                    className="input-brutal flex-1 bg-surface min-h-11"
+                    placeholder={userRoleInCurrentRoom === 'observer' ? "You are an observer (read-only mode)" : "Type your message..."}
+                    className="input-brutal flex-1 bg-surface min-h-11 disabled:opacity-60 disabled:cursor-not-allowed"
                     maxLength={2000}
-                    disabled={sendingMessage}
+                    disabled={sendingMessage || userRoleInCurrentRoom === 'observer'}
                   />
                   <button
                     type="submit"
-                    disabled={sendingMessage || (!messageText.trim() && !pendingFile)}
-                    className={`btn-brutal min-w-24 ${(messageText.trim() || pendingFile) ? 'bg-success text-white' : 'bg-gray-200 text-gray-500'}`}
+                    disabled={sendingMessage || (!messageText.trim() && !pendingFile) || userRoleInCurrentRoom === 'observer'}
+                    className={`btn-brutal min-w-24 ${((messageText.trim() || pendingFile) && userRoleInCurrentRoom !== 'observer') ? 'bg-success text-white' : 'bg-gray-200 text-gray-500 disabled:opacity-50'}`}
                   >
-                    {uploadProgress !== null ? `${uploadProgress}%` : sendingMessage ? 'SENDING...' : 'SEND'}
+                    {uploadProgress !== null ? `${uploadProgress}%` : sendingMessage ? 'SENDING...' : userRoleInCurrentRoom === 'observer' ? 'OBSERVE' : 'SEND'}
                   </button>
                 </div>
               </form>
@@ -560,6 +743,9 @@ export default function Home() {
             </div>
           </div>
 
+          <PublicDisclosureBanner />
+          <ObserverSuggestionsPanel />
+
           <div className="flex-1 overflow-y-auto p-4" style={{ background: 'var(--bg-secondary)' }}>
             <div className="flex flex-col gap-3">
               {messages.map((msg, idx) => (
@@ -646,22 +832,22 @@ export default function Home() {
                 type="text"
                 value={messageText}
                 onChange={(e) => handleTyping(e.target.value)}
-                placeholder="Type your message..."
-                className="input-brutal flex-1 min-h-11"
+                placeholder={userRoleInCurrentRoom === 'observer' ? "You are an observer (read-only mode)" : "Type your message..."}
+                className="input-brutal flex-1 min-h-11 disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{ background: 'var(--bg-main)' }}
                 maxLength={2000}
-                disabled={sendingMessage}
+                disabled={sendingMessage || userRoleInCurrentRoom === 'observer'}
               />
               <button
                 type="submit"
-                disabled={sendingMessage || (!messageText.trim() && !pendingFile)}
+                disabled={sendingMessage || (!messageText.trim() && !pendingFile) || userRoleInCurrentRoom === 'observer'}
                 className="btn-brutal"
                 style={{
-                  background: (messageText.trim() || pendingFile) ? 'var(--success)' : '#D1D5DB',
-                  color: (messageText.trim() || pendingFile) ? 'white' : '#6B7280',
+                  background: ((messageText.trim() || pendingFile) && userRoleInCurrentRoom !== 'observer') ? 'var(--success)' : '#D1D5DB',
+                  color: ((messageText.trim() || pendingFile) && userRoleInCurrentRoom !== 'observer') ? 'white' : '#6B7280',
                 }}
               >
-                {uploadProgress !== null ? `${uploadProgress}%` : sendingMessage ? '...' : 'SEND'}
+                {uploadProgress !== null ? `${uploadProgress}%` : sendingMessage ? '...' : userRoleInCurrentRoom === 'observer' ? 'VIEW' : 'SEND'}
               </button>
             </div>
           </form>
@@ -675,6 +861,18 @@ export default function Home() {
         confirmText="DELETE"
         onConfirm={confirmDelete}
         onCancel={() => setDeleteConfirm({ isOpen: false, messageId: null })}
+      />
+
+      <MatchingModal
+        isOpen={showMatchingModal}
+        onClose={() => setShowMatchingModal(false)}
+      />
+
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        targetPublicId={matchedPartner?.publicId}
+        roomId={currentRoom?._id}
       />
     </div>
   );

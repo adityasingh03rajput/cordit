@@ -32,6 +32,8 @@ export default function RegisterPage() {
   const setUser = useStore((state) => state.setUser);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [gender, setGender] = useState<'male' | 'female' | 'other'>('male');
+  const [genderPreference, setGenderPreference] = useState<'male' | 'female' | 'any'>('any');
   const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -78,11 +80,21 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const data = await authAPI.register(username, password, inviteCode);
+      const data = await authAPI.register({
+        username: username.trim() || undefined,
+        password,
+        gender,
+        genderPreference,
+        inviteCode: inviteCode.trim() || undefined,
+      });
 
       const user = {
         username: data.username,
-        role: 'user' as 'user' | 'admin',
+        publicId: data.publicId,
+        gender: data.gender,
+        genderPreference: data.genderPreference,
+        status: data.status,
+        role: (data.role || 'user') as 'user' | 'admin',
         token: data.token,
       };
 
@@ -98,97 +110,117 @@ export default function RegisterPage() {
     }
   };
 
-  const getCodeBorderColor = () => {
-    if (codeValid === true) return 'border-success';
-    if (codeValid === false) return 'border-error';
-    return 'border-border';
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface p-4">
       <div className="card-brutal bg-card w-full max-w-md p-6">
         <div className="mb-6 text-center">
-          <h1 className="text-4xl font-black text-dark mb-2">JOIN CORDIT</h1>
-          <p className="text-sm font-medium text-dim">Invite code required</p>
+          <h1 className="text-4xl font-black text-dark mb-1">JOIN STRANGER CHAT</h1>
+          <p className="text-xs font-bold text-dim uppercase">Get an anonymous numeric public ID</p>
         </div>
 
         <form onSubmit={handleRegister} className="flex flex-col gap-4">
-          <div>
-            <label className="block text-sm font-bold mb-2 text-dark">INVITE CODE</label>
-            <div className="relative">
-              <input
-                type="text"
-                value={inviteCode}
-                onChange={(e) => handleCodeChange(e.target.value)}
-                className={`input-brutal w-full ${getCodeBorderColor()}`}
-                placeholder="A1B2C3D4"
-                maxLength={8}
-                required
-                autoFocus
-              />
-              {validatingCode && (
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-dim">...</span>
-              )}
-              {codeValid === true && (
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-success font-bold">OK</span>
-              )}
-              {codeValid === false && (
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-error font-bold">X</span>
-              )}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-black mb-1 text-dark uppercase">MY GENDER</label>
+              <select
+                value={gender}
+                onChange={(e) => setGender(e.target.value as 'male' | 'female' | 'other')}
+                className="input-brutal w-full font-bold text-sm bg-white"
+              >
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-black mb-1 text-dark uppercase">LOOKING FOR</label>
+              <select
+                value={genderPreference}
+                onChange={(e) => setGenderPreference(e.target.value as 'male' | 'female' | 'any')}
+                className="input-brutal w-full font-bold text-sm bg-white"
+              >
+                <option value="any">Any Gender</option>
+                <option value="female">Female</option>
+                <option value="male">Male</option>
+              </select>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-bold mb-2 text-dark">USERNAME</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="input-brutal w-full"
-              placeholder="cooluser"
-              minLength={3}
-              maxLength={30}
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-bold mb-2 text-dark">PASSWORD</label>
+            <label className="block text-xs font-black mb-1 text-dark uppercase">
+              PASSWORD <span className="text-error">*</span>
+            </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="input-brutal w-full"
-              placeholder="••••••••"
-              minLength={6}
-              maxLength={30}
+              placeholder="Minimum 6 characters"
               required
+              minLength={6}
             />
           </div>
 
+          <div>
+            <label className="block text-xs font-black mb-1 text-dark uppercase">
+              USERNAME <span className="text-dim font-normal">(OPTIONAL)</span>
+            </label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="input-brutal w-full"
+              placeholder="Leave blank for auto-generated name"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-black mb-1 text-dark uppercase">
+              INVITE CODE <span className="text-dim font-normal">(OPTIONAL)</span>
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={inviteCode}
+                onChange={(e) => handleCodeChange(e.target.value)}
+                className={`input-brutal w-full uppercase ${
+                  codeValid === true ? 'border-success' : codeValid === false ? 'border-error' : ''
+                }`}
+                placeholder="Optional 8-char code"
+                maxLength={8}
+              />
+              {validatingCode && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <div className="animate-spin h-4 w-4 border-2 border-black border-t-transparent rounded-full" />
+                </div>
+              )}
+            </div>
+          </div>
+
           {error && (
-            <div className="p-3 border-[3px] border-black font-bold text-sm bg-error text-white">
+            <div className="p-3 border-[3px] border-black font-bold text-xs bg-error text-white">
               {error}
             </div>
           )}
 
           <button
             type="submit"
-            disabled={loading || codeValid !== true}
-            className={`btn-brutal w-full py-3 ${codeValid === true ? 'bg-primary text-white' : 'bg-gray-300 text-gray-500'}`}
+            disabled={loading}
+            className="btn-brutal gradient-yellow w-full py-3 font-black text-dark tracking-wide uppercase mt-2"
           >
-            {loading ? 'CREATING ACCOUNT...' : 'REGISTER'}
+            {loading ? 'CREATING ID...' : 'REGISTER & GET ID'}
           </button>
-
-          <div className="text-center border-t-[3px] border-border pt-4 mt-4">
-            <p className="text-sm font-medium text-dim">
-              Already have an account?{' '}
-              <Link href="/login" className="font-bold underline text-dark">
-                LOGIN HERE
-              </Link>
-            </p>
-          </div>
         </form>
+
+        <div className="mt-5 text-center">
+          <p className="text-sm font-bold text-dim">
+            Already have an ID?{' '}
+            <Link href="/login" className="text-dark underline hover:text-purple">
+              Login here
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

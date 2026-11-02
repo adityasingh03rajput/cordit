@@ -34,3 +34,10 @@ coverage/
 # Misc
 *.tgz
 .npmrc
+
+
+# Local data & uploads
+backend/local_mongodb_data/
+backend/uploads/
+local_mongodb_data/
+uploads/

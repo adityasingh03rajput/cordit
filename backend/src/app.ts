@@ -13,8 +13,11 @@ import roomRoutes from './routes/room';
 import messageRoutes from './routes/message';
 import inviteCodeRoutes from './routes/inviteCode';
 import uploadRoutes from './routes/upload';
+import moderationRoutes from './routes/moderation';
 import createAdmin from './utils/createAdmin';
 import createDefaultRoom from './utils/createDefaultRoom';
+import { ensurePublicIds } from './utils/migratePublicIds';
+import { matchingService } from './services/matchingService';
 import { logger } from './utils/logger';
 import { initializeSocket } from './utils/socket';
 import { initBucket } from './utils/s3';
@@ -24,11 +27,16 @@ const httpServer = createServer(app);
 
 app.set('trust proxy', 1);
 
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  })
+);
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: parseInt(process.env.RATE_LIMIT_AUTH_MAX || (process.env.NODE_ENV === 'production' ? '15' : '1000'), 10),
   message: { error: 'Too many attempts, please try again after 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -92,6 +100,7 @@ app.use('/room', roomRoutes);
 app.use('/message', messageRoutes);
 app.use('/invite', inviteCodeRoutes);
 app.use('/upload', uploadRoutes);
+app.use('/moderation', moderationRoutes);
 
 db.once('open', async () => {
   logger.info('MongoDB connected successfully');
@@ -101,6 +110,8 @@ db.once('open', async () => {
   }
 
   await createDefaultRoom();
+  await ensurePublicIds();
+  await matchingService.loadBlocksFromDb();
 
   initBucket().catch((err) => {
     logger.warn('Failed to initialize S3 bucket (MinIO may not be running):', err);

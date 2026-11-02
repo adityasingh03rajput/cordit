@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { User, Room, Message, ActiveUser } from './types';
+import type { User, Room, Message, ActiveUser, Suggestion } from './types';
 
 interface AppState {
   user: User | null;
@@ -10,6 +10,17 @@ interface AppState {
   isConnected: boolean;
   typingUsers: string[];
 
+  // Stranger Matching State
+  isMatching: boolean;
+  matchingPreference: 'male' | 'female' | 'any';
+  matchError: string | null;
+  matchedPartner: { publicId: number; username: string; gender: string } | null;
+
+  // Observer & Suggestions State
+  userRoleInCurrentRoom: 'participant' | 'observer';
+  suggestions: Suggestion[];
+  showSuggestions: boolean;
+
   setUser: (user: User | null) => void;
   setCurrentRoom: (room: Room | null) => void;
   setRooms: (rooms: Room[]) => void;
@@ -19,6 +30,14 @@ interface AppState {
   setConnected: (isConnected: boolean) => void;
   addTypingUser: (username: string) => void;
   removeTypingUser: (username: string) => void;
+  setMatching: (isMatching: boolean) => void;
+  setMatchingPreference: (pref: 'male' | 'female' | 'any') => void;
+  setMatchError: (err: string | null) => void;
+  setMatchedPartner: (partner: { publicId: number; username: string; gender: string } | null) => void;
+  setUserRoleInCurrentRoom: (role: 'participant' | 'observer') => void;
+  setSuggestions: (suggestions: Suggestion[]) => void;
+  addSuggestion: (suggestion: Suggestion) => void;
+  setShowSuggestions: (show: boolean) => void;
   logout: () => void;
 }
 
@@ -31,9 +50,23 @@ export const useStore = create<AppState>((set) => ({
   isConnected: false,
   typingUsers: [],
 
+  isMatching: false,
+  matchingPreference: 'any',
+  matchError: null,
+  matchedPartner: null,
+
+  userRoleInCurrentRoom: 'participant',
+  suggestions: [],
+  showSuggestions: true,
+
   setUser: (user) => set({ user }),
 
-  setCurrentRoom: (room) => set({ currentRoom: room, messages: [] }),
+  setCurrentRoom: (room) => set({
+    currentRoom: room,
+    messages: [],
+    suggestions: [],
+    userRoleInCurrentRoom: room?.role || 'participant',
+  }),
 
   setRooms: (rooms) => set({ rooms }),
 
@@ -57,6 +90,18 @@ export const useStore = create<AppState>((set) => ({
     typingUsers: state.typingUsers.filter(u => u !== username)
   })),
 
+  setMatching: (isMatching) => set({ isMatching }),
+  setMatchingPreference: (matchingPreference) => set({ matchingPreference }),
+  setMatchError: (matchError) => set({ matchError }),
+  setMatchedPartner: (matchedPartner) => set({ matchedPartner }),
+
+  setUserRoleInCurrentRoom: (userRoleInCurrentRoom) => set({ userRoleInCurrentRoom }),
+  setSuggestions: (suggestions) => set({ suggestions }),
+  addSuggestion: (suggestion) => set((state) => ({
+    suggestions: [suggestion, ...state.suggestions],
+  })),
+  setShowSuggestions: (showSuggestions) => set({ showSuggestions }),
+
   logout: () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('token');
@@ -67,6 +112,13 @@ export const useStore = create<AppState>((set) => ({
       });
       window.location.href = '/login';
     }
-    set({ user: null, currentRoom: null, messages: [], activeUsers: [] });
+    set({
+      user: null,
+      currentRoom: null,
+      messages: [],
+      activeUsers: [],
+      isMatching: false,
+      suggestions: [],
+    });
   },
 }));

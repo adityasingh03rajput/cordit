@@ -3,15 +3,25 @@ import mongoose, { Document, Schema, Types } from 'mongoose';
 export interface IActiveUser {
   userId: Types.ObjectId;
   username: string;
+  publicId?: number;
+  role?: 'participant' | 'observer';
   joinedAt: Date;
   isVoiceActive?: boolean;
   livekitParticipantId?: string;
 }
 
+export type RoomType = 'channel' | 'stranger_chat';
+export type RoomStatus = 'active' | 'ended';
+
 export interface IRoom extends Document {
   name: string;
   description?: string;
   isDefault: boolean;
+  roomType: RoomType;
+  status: RoomStatus;
+  isPublic: boolean;
+  participants: Types.ObjectId[];
+  observers: Types.ObjectId[];
   activeUsers: IActiveUser[];
   maxUsers?: number;
   livekitRoomName?: string;
@@ -20,6 +30,7 @@ export interface IRoom extends Document {
   deletedBy?: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
+  endedAt?: Date;
 }
 
 const activeUserSchema = new Schema<IActiveUser>(
@@ -32,6 +43,14 @@ const activeUserSchema = new Schema<IActiveUser>(
     username: {
       type: String,
       required: true,
+    },
+    publicId: {
+      type: Number,
+    },
+    role: {
+      type: String,
+      enum: ['participant', 'observer'],
+      default: 'participant',
     },
     joinedAt: {
       type: Date,
@@ -53,9 +72,8 @@ const roomSchema = new Schema<IRoom>(
     name: {
       type: String,
       required: true,
-      unique: true,
       trim: true,
-      maxlength: 100,
+      maxlength: 150,
     },
     description: {
       type: String,
@@ -65,6 +83,35 @@ const roomSchema = new Schema<IRoom>(
       type: Boolean,
       default: false,
     },
+    roomType: {
+      type: String,
+      enum: ['channel', 'stranger_chat'],
+      default: 'channel',
+      index: true,
+    },
+    status: {
+      type: String,
+      enum: ['active', 'ended'],
+      default: 'active',
+      index: true,
+    },
+    isPublic: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
+    participants: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
+    observers: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
     activeUsers: [activeUserSchema],
     maxUsers: {
       type: Number,
@@ -86,6 +133,9 @@ const roomSchema = new Schema<IRoom>(
       type: Schema.Types.ObjectId,
       ref: 'User',
     },
+    endedAt: {
+      type: Date,
+    },
   },
   {
     timestamps: true,
@@ -95,5 +145,6 @@ const roomSchema = new Schema<IRoom>(
 
 roomSchema.index({ isDefault: 1 });
 roomSchema.index({ isDeleted: 1 });
+roomSchema.index({ status: 1, roomType: 1 });
 
 export default mongoose.model<IRoom>('Room', roomSchema);

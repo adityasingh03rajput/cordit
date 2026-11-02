@@ -5,6 +5,7 @@ export interface IFileUpload extends Document {
   username: string;
   originalName: string;
   s3Key: string;
+  localPath?: string;
   mimeType: string;
   fileSize: number;
   expiresAt: Date;
@@ -30,6 +31,9 @@ const fileUploadSchema = new Schema<IFileUpload>(
       type: String,
       required: true,
       unique: true,
+    },
+    localPath: {
+      type: String,
     },
     mimeType: {
       type: String,

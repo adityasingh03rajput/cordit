@@ -4,6 +4,7 @@ import yargs from 'yargs';
 import mongoose from 'mongoose';
 import User from '../models/user';
 import { login } from '../validators/user';
+import { generateNumericPublicId } from './idGenerator';
 
 const mongoDB = process.env.DATABASE_URL || '';
 mongoose.connect(mongoDB);
@@ -54,9 +55,18 @@ const createAdmin = async (): Promise<void> => {
     }
 
     const hashedPassword = await bcrypt.hash(password!, 10);
-    const newUser = new User({ username, password: hashedPassword, role: 'admin' });
+    const publicId = await generateNumericPublicId();
+    const newUser = new User({
+      username,
+      publicId,
+      password: hashedPassword,
+      role: 'admin',
+      gender: 'other',
+      genderPreference: 'any',
+      status: 'active',
+    });
     await newUser.save();
-    console.log('Admin created successfully');
+    console.log(`Admin created successfully with publicId: ${publicId}`);
   } catch (error) {
     console.error('Error creating admin:', error);
   } finally {
