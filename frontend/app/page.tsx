@@ -380,13 +380,13 @@ export default function Home() {
 
         {/* Central Chat Viewport or Landing */}
         {currentRoom ? (
-          <div className="flex-1 flex flex-col min-h-0 px-6 pb-5 pt-2">
-            {/* Translucent Glassmorphic Chat Card */}
-            <div className="flex-1 bg-white/20 backdrop-blur-md rounded-3xl border border-white/40 shadow-sm flex flex-col min-h-0 overflow-hidden relative">
+          <div className="flex-1 flex flex-col min-h-0 pl-3 pr-6 pb-5 pt-2">
+            {/* Ultra-Clear Translucent Glass Chat Card */}
+            <div className="flex-1 bg-white/[0.06] backdrop-blur-xs rounded-3xl border border-white/25 shadow-sm flex flex-col min-h-0 overflow-hidden relative">
               {/* Date Divider (Today) */}
               <div className="flex items-center justify-center my-3.5 relative px-8 flex-shrink-0">
-                <div className="absolute inset-x-8 h-px bg-neutral-300/40" />
-                <span className="relative bg-white/40 backdrop-blur-xs rounded-full px-4 py-0.5 text-xs font-semibold text-neutral-600 select-none shadow-2xs">
+                <div className="absolute inset-x-8 h-px bg-white/20" />
+                <span className="relative bg-white/[0.2] backdrop-blur-xs rounded-full px-4 py-0.5 text-xs font-semibold text-neutral-700 select-none shadow-2xs border border-white/20">
                   Today
                 </span>
               </div>
@@ -459,7 +459,7 @@ export default function Home() {
               {/* Translucent Floating Message Composer */}
               <form
                 onSubmit={handleSendMessage}
-                className="p-4 pt-2 flex items-center gap-3 bg-white/20 backdrop-blur-md border-t border-white/30 flex-shrink-0"
+                className="p-4 pt-2 flex items-center gap-3 bg-white/[0.06] backdrop-blur-xs border-t border-white/20 flex-shrink-0"
               >
                 <input
                   ref={fileInputRef}
@@ -470,7 +470,7 @@ export default function Home() {
                   disabled={userRoleInCurrentRoom === 'observer'}
                 />
 
-                <div className="flex-1 bg-white/40 backdrop-blur-sm border border-white/50 rounded-2xl px-4 py-2.5 flex items-center gap-3 shadow-xs">
+                <div className="flex-1 bg-white/[0.15] border border-white/30 rounded-2xl px-4 py-2.5 flex items-center gap-3 shadow-xs">
                   {/* Paperclip Attachment */}
                   <button
                     type="button"

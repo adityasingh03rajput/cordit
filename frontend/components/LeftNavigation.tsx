@@ -19,15 +19,9 @@ export default function LeftNavigation({
   const { isConnected } = useStore();
 
   return (
-    <aside
-      className="w-[230px] flex-shrink-0 h-screen text-white flex flex-col justify-between select-none relative z-20"
-      style={{
-        background: 'linear-gradient(180deg, #121214 0%, #121214 50%, rgba(18,18,20,0.85) 62%, rgba(18,18,20,0.35) 74%, transparent 88%)',
-        borderRight: '1px solid rgba(255, 255, 255, 0.05)',
-      }}
-    >
-      {/* ── TOP: BRAND LOGO & NAVIGATION ── */}
-      <div className="flex flex-col p-5 pb-0">
+    <aside className="w-[230px] flex-shrink-0 h-screen text-white flex flex-col justify-between select-none relative z-20 bg-transparent">
+      {/* ── TOP: FLOATING DARK CARD FOR BRAND LOGO & NAVIGATION ── */}
+      <div className="flex flex-col p-5 pb-6 bg-[#121214] rounded-br-3xl border-r border-b border-neutral-800/80 shadow-2xl">
         {/* Brand Logo */}
         <div className="mb-8">
           <div className="flex items-center gap-2.5">
@@ -135,8 +129,8 @@ export default function LeftNavigation({
         </nav>
       </div>
 
-      {/* ── BOTTOM SPACER: ALLOWS UNDERLYING WALLPAPER TO SHINE THROUGH ── */}
-      <div className="h-64 pointer-events-none" />
+      {/* ── BOTTOM AREA: 100% UNBLOCKED FOR UNDERLYING WALLPAPER ARTWORK ── */}
+      <div className="flex-1 min-h-[300px] pointer-events-none" />
     </aside>
   );
 }
