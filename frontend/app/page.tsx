@@ -381,12 +381,12 @@ export default function Home() {
         {/* Central Chat Viewport or Landing */}
         {currentRoom ? (
           <div className="flex-1 flex flex-col min-h-0 px-6 pb-5 pt-2">
-            {/* Soft Warm Parchment Chat Card */}
-            <div className="flex-1 bg-[#faf8f5]/85 backdrop-blur-xs rounded-3xl border border-[#e8e4dc] shadow-sm flex flex-col min-h-0 overflow-hidden relative">
+            {/* Translucent Glassmorphic Chat Card */}
+            <div className="flex-1 bg-white/20 backdrop-blur-md rounded-3xl border border-white/40 shadow-sm flex flex-col min-h-0 overflow-hidden relative">
               {/* Date Divider (Today) */}
               <div className="flex items-center justify-center my-3.5 relative px-8 flex-shrink-0">
-                <div className="absolute inset-x-8 h-px bg-[#e8e4dc]" />
-                <span className="relative bg-[#faf8f5] px-4 text-xs font-semibold text-neutral-400 select-none">
+                <div className="absolute inset-x-8 h-px bg-neutral-300/40" />
+                <span className="relative bg-white/40 backdrop-blur-xs rounded-full px-4 py-0.5 text-xs font-semibold text-neutral-600 select-none shadow-2xs">
                   Today
                 </span>
               </div>
@@ -456,10 +456,10 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Docked Floating Message Composer */}
+              {/* Translucent Floating Message Composer */}
               <form
                 onSubmit={handleSendMessage}
-                className="p-4 pt-2 flex items-center gap-3 bg-[#faf8f5] border-t border-[#f0ece4] flex-shrink-0"
+                className="p-4 pt-2 flex items-center gap-3 bg-white/20 backdrop-blur-md border-t border-white/30 flex-shrink-0"
               >
                 <input
                   ref={fileInputRef}
@@ -470,7 +470,7 @@ export default function Home() {
                   disabled={userRoleInCurrentRoom === 'observer'}
                 />
 
-                <div className="flex-1 bg-white/80 border border-[#e2ddd5] rounded-2xl px-4 py-2.5 flex items-center gap-3 shadow-xs">
+                <div className="flex-1 bg-white/40 backdrop-blur-sm border border-white/50 rounded-2xl px-4 py-2.5 flex items-center gap-3 shadow-xs">
                   {/* Paperclip Attachment */}
                   <button
                     type="button"

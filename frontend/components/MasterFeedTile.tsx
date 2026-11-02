@@ -110,7 +110,7 @@ export const MasterFeedTile = memo(function MasterFeedTile({
     if (payload.isSystem) {
       return (
         <div className={`w-full flex justify-center my-3 px-2 ${className}`} style={style}>
-          <div className="border border-[#dfdad0] bg-white/70 backdrop-blur-xs rounded-full px-5 py-2 flex items-center justify-between w-full max-w-2xl shadow-xs text-xs">
+          <div className="border border-white/40 bg-white/30 backdrop-blur-md rounded-full px-5 py-2 flex items-center justify-between w-full max-w-2xl shadow-xs text-xs">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-5 h-5 rounded-full border border-red-300 flex items-center justify-center text-red-600 bg-red-50 text-[10px] flex-shrink-0">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
