@@ -5,24 +5,37 @@ import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import { useSocket } from '@/lib/useSocket';
 import { roomAPI, messageAPI, uploadAPI, moderationAPI } from '@/lib/api';
-import { format } from 'date-fns';
 import type { FileAttachment } from '@/lib/types';
 import VoiceChat from '@/components/VoiceChat';
-import MobileNav from '@/components/MobileNav';
-import RoomsSidebar from '@/components/RoomsSidebar';
-import HamburgerMenu from '@/components/HamburgerMenu';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import MediaMessage from '@/components/MediaMessage';
 import MatchingModal from '@/components/MatchingModal';
-import PublicDisclosureBanner from '@/components/PublicDisclosureBanner';
-import ObserverSuggestionsPanel from '@/components/ObserverSuggestionsPanel';
 import ReportModal from '@/components/ReportModal';
 import StrangerChatLanding from '@/components/StrangerChatLanding';
+import LeftNavigation from '@/components/LeftNavigation';
+import TopHeader from '@/components/TopHeader';
+import RightSidebar from '@/components/RightSidebar';
 import { MasterFeedTile } from '@/components/MasterFeedTile';
 
 export default function Home() {
   const router = useRouter();
-  const { user, currentRoom, rooms, messages, isConnected, typingUsers, userRoleInCurrentRoom, setSuggestions, setCurrentRoom, setRooms, setMessages, setMatchedPartner, logout } = useStore();
+  const {
+    user,
+    currentRoom,
+    rooms,
+    messages,
+    isConnected,
+    typingUsers,
+    userRoleInCurrentRoom,
+    matchedPartner,
+    setSuggestions,
+    setCurrentRoom,
+    setRooms,
+    setMessages,
+    setMatchedPartner,
+    logout,
+  } = useStore();
+
   const { sendMessage, startTyping, stopTyping, socket } = useSocket();
 
   const [messageText, setMessageText] = useState('');
@@ -31,8 +44,37 @@ export default function Home() {
   const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [showMatchingModal, setShowMatchingModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
-  const matchedPartner = useStore((state) => state.matchedPartner);
+  const [showRoomsDrawer, setShowRoomsDrawer] = useState(false);
+  const [activeNavTab, setActiveNavTab] = useState<'home' | 'stranger_chat' | 'rooms' | 'voice_rooms' | 'library'>('stranger_chat');
 
+  // Voice Chat States
+  const [isInVoice, setIsInVoice] = useState(false);
+  const [connectingVoice, setConnectingVoice] = useState(false);
+  const [joinTrigger, setJoinTrigger] = useState(false);
+  const [leaveTrigger, setLeaveTrigger] = useState(false);
+
+  // File Upload States
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; messageId: string | null }>({
+    isOpen: false,
+    messageId: null,
+  });
+
+  // Create Room state
+  const [newRoomName, setNewRoomName] = useState('');
+  const [newRoomDescription, setNewRoomDescription] = useState('');
+  const [creatingRoom, setCreatingRoom] = useState(false);
+  const [createRoomError, setCreateRoomError] = useState('');
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const initialLoadDoneRef = useRef(false);
+
+  // Block partner handler
   const handleBlockPartner = async () => {
     if (!matchedPartner) return;
     if (window.confirm(`Block #${matchedPartner.publicId}? You will never be matched with this user again.`)) {
@@ -46,6 +88,7 @@ export default function Home() {
     }
   };
 
+  // Leave room handler
   const handleLeaveRoom = () => {
     if (currentRoom && socket?.connected) {
       socket.emit('leave_room', { roomId: currentRoom._id });
@@ -61,80 +104,24 @@ export default function Home() {
       setShowMatchingModal(false);
     }
   }, [matchedPartner]);
-  const [newRoomName, setNewRoomName] = useState('');
-  const [newRoomDescription, setNewRoomDescription] = useState('');
-  const [newRoomMaxUsers, setNewRoomMaxUsers] = useState(100);
-  const [creatingRoom, setCreatingRoom] = useState(false);
-  const [createRoomError, setCreateRoomError] = useState('');
 
-  const handleCreateRoomSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newRoomName.trim()) return;
-
-    setCreatingRoom(true);
-    setCreateRoomError('');
-
-    try {
-      const data = await roomAPI.create(
-        newRoomName.trim(),
-        newRoomDescription.trim() || undefined,
-        Number(newRoomMaxUsers) || 100
-      );
-
-      const createdRoom = (data as any).room || data;
-      setRooms([...rooms, createdRoom]);
-      setCurrentRoom(createdRoom);
-      setShowCreateRoom(false);
-      setNewRoomName('');
-      setNewRoomDescription('');
-      setNewRoomMaxUsers(100);
-
-      if (createdRoom._id) {
-        await roomAPI.join(createdRoom._id);
-        const messagesData = await messageAPI.getByRoom(createdRoom._id);
-        setMessages(messagesData.messages || []);
-      }
-    } catch (err: unknown) {
-      const errorObj = err as { response?: { data?: { error?: string } } };
-      setCreateRoomError(errorObj.response?.data?.error || 'Failed to create room');
-    } finally {
-      setCreatingRoom(false);
-    }
-  };
-  const [showRoomsMenu, setShowRoomsMenu] = useState(false);
-  const [isInVoice, setIsInVoice] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [joinTrigger, setJoinTrigger] = useState(false);
-  const [leaveTrigger, setLeaveTrigger] = useState(false);
-  const [muteTrigger, setMuteTrigger] = useState(false);
-  const [connecting, setConnecting] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; messageId: string | null }>({ isOpen: false, messageId: null });
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [mediaUrls, setMediaUrls] = useState<Record<string, string>>({});
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const initialLoadDoneRef = useRef(false);
-
+  // Select a room
   const selectRoom = useCallback(async (roomId: string) => {
     try {
-      const room = rooms.find(r => r._id === roomId);
+      const room = rooms.find((r) => r._id === roomId);
       if (!room) return;
 
       setCurrentRoom(room);
-
       const data = await messageAPI.getByRoom(roomId);
-      setMessages(data.messages);
-
+      setMessages(data.messages || []);
       await roomAPI.join(roomId);
+      setShowRoomsDrawer(false);
     } catch (error) {
       console.error('Failed to join room:', error);
     }
   }, [rooms, setCurrentRoom, setMessages]);
 
+  // Auth redirect check
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -142,6 +129,7 @@ export default function Home() {
     }
   }, [router]);
 
+  // Initial rooms load
   useEffect(() => {
     if (!user || initialLoadDoneRef.current) return;
     initialLoadDoneRef.current = true;
@@ -149,16 +137,15 @@ export default function Home() {
     const loadRooms = async () => {
       try {
         const data = await roomAPI.getAll();
-        setRooms(data.rooms);
+        setRooms(data.rooms || []);
 
-        if (data.rooms.length > 0 && !currentRoom) {
-          const firstRoom = data.rooms[0];
-          setCurrentRoom(firstRoom);
-
-          const messagesData = await messageAPI.getByRoom(firstRoom._id);
-          setMessages(messagesData.messages);
-
-          await roomAPI.join(firstRoom._id);
+        if (data.rooms && data.rooms.length > 0 && !currentRoom) {
+          // Prefer stranger chat room if available
+          const strangerRoom = data.rooms.find((r: any) => r.roomType === 'stranger_chat') || data.rooms[0];
+          setCurrentRoom(strangerRoom);
+          const messagesData = await messageAPI.getByRoom(strangerRoom._id);
+          setMessages(messagesData.messages || []);
+          await roomAPI.join(strangerRoom._id);
         }
       } catch (error) {
         console.error('Failed to load rooms:', error);
@@ -170,31 +157,24 @@ export default function Home() {
     loadRooms();
   }, [currentRoom, setCurrentRoom, setMessages, setRooms, user]);
 
-  useEffect(() => {
-    if (!user) return;
-
-    const handleVisibilityChange = async () => {
-      if (!document.hidden && currentRoom) {
-        try {
-          const roomsData = await roomAPI.getAll();
-          setRooms(roomsData.rooms);
-
-          const messagesData = await messageAPI.getByRoom(currentRoom._id);
-          setMessages(messagesData.messages);
-        } catch (error) {
-          console.error('Failed to reload data:', error);
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [currentRoom, setMessages, setRooms, user]);
-
+  // Auto-scroll messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Voice Chat Handlers
+  const handleJoinVoice = () => {
+    setConnectingVoice(true);
+    setJoinTrigger((prev) => !prev);
+  };
+
+  const handleLeaveVoice = () => {
+    setLeaveTrigger((prev) => !prev);
+    setIsInVoice(false);
+    setConnectingVoice(false);
+  };
+
+  // File Upload Handlers
   const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -215,7 +195,6 @@ export default function Home() {
     }
 
     setPendingFile(file);
-    // Reset input so same file can be re-selected
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -225,12 +204,7 @@ export default function Home() {
     setUploadProgress(null);
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes}B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
-  };
-
+  // Send Message
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!messageText.trim() && !pendingFile) || sendingMessage) return;
@@ -243,15 +217,12 @@ export default function Home() {
 
       if (pendingFile) {
         setUploadProgress(0);
-
-        // Request presigned URL
         const uploadData = await uploadAPI.requestUpload(
           pendingFile.name,
           pendingFile.type,
-          pendingFile.size,
+          pendingFile.size
         );
 
-        // Upload file to S3
         await uploadAPI.uploadToS3(uploadData.fileId, uploadData.uploadUrl, pendingFile, setUploadProgress);
 
         attachment = {
@@ -259,12 +230,10 @@ export default function Home() {
           fileName: pendingFile.name,
           mimeType: pendingFile.type,
           fileSize: pendingFile.size,
-          s3Key: '', // not needed for frontend
+          s3Key: '',
         };
 
-        // Cache the download URL
         setMediaUrls((prev) => ({ ...prev, [uploadData.fileId]: uploadData.downloadUrl }));
-
         setPendingFile(null);
         setUploadProgress(null);
       }
@@ -291,37 +260,12 @@ export default function Home() {
 
     if (value.length > 0) {
       startTyping();
-
       typingTimeoutRef.current = setTimeout(() => {
         stopTyping();
       }, 2000);
     } else {
       stopTyping();
     }
-  };
-
-  const handleJoinVoice = () => {
-    setConnecting(true);
-    setJoinTrigger(prev => !prev);
-  };
-
-  const handleLeaveVoice = () => {
-    setLeaveTrigger(prev => !prev);
-  };
-
-  const handleToggleMute = () => {
-    setMuteTrigger(prev => !prev);
-    setIsMuted(prev => !prev);
-  };
-
-  const handleToggleChat = () => {
-    setIsChatOpen(prev => !prev);
-  };
-
-  const getMessageBg = (idx: number, isSystem: boolean): string => {
-    if (isSystem) return 'var(--bg-accent)';
-    const bgs = ['var(--bg-card)', 'var(--bg-secondary)', 'var(--bg-success)', 'var(--bg-purple)'];
-    return bgs[idx % 4];
   };
 
   const handleDeleteMessage = async (messageId: string) => {
@@ -332,7 +276,7 @@ export default function Home() {
     if (!deleteConfirm.messageId) return;
     try {
       await messageAPI.delete(deleteConfirm.messageId);
-      setMessages(messages.filter(m => m._id !== deleteConfirm.messageId));
+      setMessages(messages.filter((m) => m._id !== deleteConfirm.messageId));
     } catch (error) {
       console.error('Failed to delete message:', error);
     } finally {
@@ -344,286 +288,120 @@ export default function Home() {
     return user?.role === 'admin' || user?.username === msgUsername;
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-surface">
-        <div className="text-2xl font-black">LOADING...</div>
-      </div>
-    );
-  }
+  const handleCreateRoomSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newRoomName.trim()) return;
 
-  if (!user) {
+    setCreatingRoom(true);
+    setCreateRoomError('');
+
+    try {
+      const data = await roomAPI.create(
+        newRoomName.trim(),
+        newRoomDescription.trim() || undefined,
+        100
+      );
+
+      const createdRoom = (data as any).room || data;
+      setRooms([...rooms, createdRoom]);
+      setCurrentRoom(createdRoom);
+      setShowCreateRoom(false);
+      setShowRoomsDrawer(false);
+      setNewRoomName('');
+      setNewRoomDescription('');
+
+      if (createdRoom._id) {
+        await roomAPI.join(createdRoom._id);
+        const messagesData = await messageAPI.getByRoom(createdRoom._id);
+        setMessages(messagesData.messages || []);
+      }
+    } catch (err: unknown) {
+      const errorObj = err as { response?: { data?: { error?: string } } };
+      setCreateRoomError(errorObj.response?.data?.error || 'Failed to create room');
+    } finally {
+      setCreatingRoom(false);
+    }
+  };
+
+  if (loading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface">
-        <div className="text-2xl font-black">LOADING...</div>
+      <div className="min-h-screen flex items-center justify-center bg-[#f4f0e8] text-neutral-800">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-full border-4 border-[#b91c1c] border-t-transparent animate-spin" />
+          <span className="font-bold text-sm tracking-widest uppercase">Connecting to Cordit...</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col mobile-container bg-surface">
-      <header className="gradient-purple px-6 py-4 border-y-[3px] border-black">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="md:hidden">
-              <HamburgerMenu onClose={() => setShowRoomsMenu(!showRoomsMenu)} />
-            </div>
-            <div>
-              <h1 className="text-xl font-black tracking-tight text-white">CORDIT</h1>
-              <p className="text-xs font-bold mt-1 text-white opacity-70">
-                {isConnected ? 'LIVE' : 'OFFLINE'}
-              </p>
-            </div>
-          </div>
+    <div
+      className="h-screen w-screen overflow-hidden flex bg-[#f4f0e8] text-neutral-900 select-none"
+      style={{
+        backgroundImage: `radial-gradient(circle at 10% 20%, rgba(0,0,0,0.015) 0%, transparent 60%), radial-gradient(circle at 90% 80%, rgba(0,0,0,0.02) 0%, transparent 60%)`,
+      }}
+    >
+      {/* ── 1. LEFT NAVIGATION PANEL ── */}
+      <LeftNavigation
+        activeTab={activeNavTab}
+        onSelectTab={(tab) => setActiveNavTab(tab as any)}
+        onOpenRooms={() => setShowRoomsDrawer(true)}
+        onOpenMatch={() => setShowMatchingModal(true)}
+      />
 
-          <div className="hidden md:flex items-center gap-3">
-            <button
-              onClick={() => setShowMatchingModal(true)}
-              className="btn-brutal gradient-yellow text-dark font-black px-4 py-2 uppercase hover:brightness-105"
-            >
-              FIND STRANGER
-            </button>
-            <span className="badge-brutal bg-yellow text-dark font-black">
-              {user.publicId ? `#${user.publicId} • ` : ''}{user.username}
-            </span>
-            {user.role === 'admin' && (
-              <button onClick={() => router.push('/admin')} className="btn-brutal bg-cyan text-white px-4 py-2">
-                INVITE CODES
-              </button>
-            )}
-            <button onClick={logout} className="btn-brutal bg-error text-white px-4 py-2">
-              LOGOUT
-            </button>
-          </div>
-          <div className="md:hidden flex items-center gap-2">
-            <button
-              onClick={() => setShowMatchingModal(true)}
-              className="btn-brutal gradient-yellow text-dark font-black px-2 py-1 text-xs uppercase"
-            >
-              MATCH
-            </button>
-            <span className="badge-brutal bg-yellow text-dark text-xs px-2 py-1 font-black">
-              {user.publicId ? `#${user.publicId}` : user.username.slice(0, 5)}
-            </span>
-            <button onClick={logout} className="btn-brutal bg-error text-white h-9 px-3 text-xs">
-              OUT
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <div className="flex-1 flex overflow-hidden">
-        <RoomsSidebar
-          rooms={rooms}
-          currentRoomId={currentRoom?._id || null}
-          onSelectRoom={selectRoom}
-          onCreateRoom={() => setShowCreateRoom(true)}
-          isOpen={showRoomsMenu}
-          onClose={() => setShowRoomsMenu(false)}
-          isMobile={true}
+      {/* ── 2. CENTER & HEADER COLUMN ── */}
+      <div className="flex-1 flex flex-col h-screen min-w-0 overflow-hidden">
+        {/* Top Header */}
+        <TopHeader
+          onReport={() => setShowReportModal(true)}
+          onLeave={handleLeaveRoom}
+          onBlock={handleBlockPartner}
+          onToggleRooms={() => setShowRoomsDrawer(true)}
         />
 
-        <div className="hidden md:block">
-          <RoomsSidebar
-            rooms={rooms}
-            currentRoomId={currentRoom?._id || null}
-            onSelectRoom={selectRoom}
-            onCreateRoom={() => setShowCreateRoom(true)}
-            isMobile={false}
-          />
-        </div>
+        {/* Socket Disconnect Alert */}
+        {!isConnected && (
+          <div className="px-6 py-2">
+            <MasterFeedTile
+              payload={{
+                id: 'net-disconnect-alert',
+                kind: 'status_alert',
+                severity: 'warning',
+                title: 'Gateway Disconnected',
+                description: 'Real-time gateway reconnecting in background...',
+                timestamp: 'Live',
+              }}
+            />
+          </div>
+        )}
 
-        <main className="flex-1 flex flex-col pb-safe">
-          {showCreateRoom ? (
-            <div className="flex-1 flex items-center justify-center bg-surface p-6 overflow-y-auto">
-              <div className="card-brutal bg-card p-8 sm:p-10 max-w-lg w-full text-left">
-                <div className="flex items-center justify-between mb-6 border-b-[3px] border-black pb-4">
-                  <h2 className="text-2xl sm:text-3xl font-black text-accent">CREATE A ROOM</h2>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowCreateRoom(false);
-                      setCreateRoomError('');
-                    }}
-                    className="btn-brutal bg-error text-white px-3 py-1 text-sm font-black"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                {createRoomError && (
-                  <div className="card-brutal bg-error text-white p-3 mb-5 font-bold text-sm">
-                    {createRoomError}
-                  </div>
-                )}
-
-                <form onSubmit={handleCreateRoomSubmit} className="flex flex-col gap-5">
-                  <div>
-                    <label className="block font-black text-sm uppercase tracking-wider mb-2">
-                      Room Name <span className="text-error">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      minLength={3}
-                      maxLength={100}
-                      value={newRoomName}
-                      onChange={(e) => setNewRoomName(e.target.value)}
-                      placeholder="e.g. general, gaming, music-lounge"
-                      className="input-brutal w-full p-3 font-bold"
-                      style={{ background: 'var(--bg-main)' }}
-                    />
-                    <span className="text-xs font-bold opacity-60 mt-1 block">Between 3 and 100 characters</span>
-                  </div>
-
-                  <div>
-                    <label className="block font-black text-sm uppercase tracking-wider mb-2">
-                      Topic / Description (Optional)
-                    </label>
-                    <textarea
-                      maxLength={500}
-                      rows={3}
-                      value={newRoomDescription}
-                      onChange={(e) => setNewRoomDescription(e.target.value)}
-                      placeholder="What is this channel about?"
-                      className="input-brutal w-full p-3 font-medium text-sm resize-none"
-                      style={{ background: 'var(--bg-main)' }}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-black text-sm uppercase tracking-wider mb-2">
-                      Max Participants
-                    </label>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="number"
-                        min={1}
-                        max={500}
-                        value={newRoomMaxUsers}
-                        onChange={(e) => setNewRoomMaxUsers(parseInt(e.target.value, 10) || 1)}
-                        className="input-brutal w-32 p-3 font-bold"
-                        style={{ background: 'var(--bg-main)' }}
-                      />
-                      <span className="text-xs font-bold opacity-70">users capacity</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-end gap-3 pt-4 border-t-[3px] border-black">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowCreateRoom(false);
-                        setCreateRoomError('');
-                      }}
-                      className="btn-brutal px-5 py-2.5 font-bold"
-                      style={{ background: 'var(--bg-secondary)' }}
-                    >
-                      CANCEL
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={creatingRoom || !newRoomName.trim()}
-                      className="btn-brutal px-7 py-2.5 font-black text-dark"
-                      style={{ background: 'var(--bg-accent)' }}
-                    >
-                      {creatingRoom ? 'CREATING...' : 'CREATE ROOM'}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          ) : currentRoom ? (
-            <>
-              {/* Room Header */}
-              <div className="gradient-yellow px-4 sm:px-6 py-3 sm:py-4 border-b-[3px] border-black flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <h2 className="text-lg sm:text-xl font-black"># {currentRoom.name}</h2>
-                  {currentRoom.roomType === 'stranger_chat' && (
-                    <>
-                      <span className="badge-brutal bg-black text-yellow text-xs font-black uppercase">
-                        PUBLIC ROOM
-                      </span>
-                      <span
-                        className={`badge-brutal text-xs font-black uppercase ${
-                          userRoleInCurrentRoom === 'observer'
-                            ? 'bg-purple text-white'
-                            : 'bg-success text-white'
-                        }`}
-                      >
-                        {userRoleInCurrentRoom === 'observer' ? 'SPECTATING (READ-ONLY)' : 'PARTICIPANT'}
-                      </span>
-                      <span className="badge-brutal bg-card text-dark text-xs font-black">
-                        👁️ {currentRoom.observerCount || 0} OBSERVER{(currentRoom.observerCount || 0) === 1 ? '' : 'S'}
-                      </span>
-                    </>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2 flex-wrap">
-                  {currentRoom.roomType === 'stranger_chat' && (
-                    <>
-                      <button
-                        onClick={() => setShowReportModal(true)}
-                        className="btn-brutal bg-white text-error font-black text-xs px-3 py-1.5 uppercase hover:bg-error hover:text-white transition-colors"
-                        title="Report this user or room"
-                      >
-                        🛡️ REPORT
-                      </button>
-                      {matchedPartner && userRoleInCurrentRoom !== 'observer' && (
-                        <button
-                          onClick={handleBlockPartner}
-                          className="btn-brutal bg-error text-white font-black text-xs px-3 py-1.5 uppercase hover:brightness-110"
-                          title="Block this partner from future matches"
-                        >
-                          🚫 BLOCK #{matchedPartner.publicId}
-                        </button>
-                      )}
-                    </>
-                  )}
-                  <button
-                    onClick={handleLeaveRoom}
-                    className="btn-brutal bg-card text-dark font-black text-xs px-3 py-1.5 uppercase hover:bg-gray-100"
-                    title="Leave room and return to stranger chat"
-                  >
-                    LEAVE ROOM
-                  </button>
-                </div>
+        {/* Central Chat Viewport or Landing */}
+        {currentRoom ? (
+          <div className="flex-1 flex flex-col min-h-0 px-6 pb-5 pt-2">
+            {/* Soft Warm Parchment Chat Card */}
+            <div className="flex-1 bg-[#faf8f5] rounded-3xl border border-[#e8e4dc] shadow-sm flex flex-col min-h-0 overflow-hidden relative">
+              {/* Date Divider (Today) */}
+              <div className="flex items-center justify-center my-3.5 relative px-8 flex-shrink-0">
+                <div className="absolute inset-x-8 h-px bg-[#e8e4dc]" />
+                <span className="relative bg-[#faf8f5] px-4 text-xs font-semibold text-neutral-400 select-none">
+                  Today
+                </span>
               </div>
 
-              {/* Socket Reconnection Alert via MasterFeedTile */}
-              {!isConnected && (
-                <div className="p-3 bg-surface border-b-[3px] border-black">
-                  <MasterFeedTile
-                    payload={{
-                      id: 'net-disconnect-alert',
-                      kind: 'status_alert',
-                      severity: 'warning',
-                      title: 'GATEWAY DISCONNECTED',
-                      description: 'Disconnected from chat server. Reconnecting automatically...',
-                      timestamp: 'Live',
-                    }}
-                  />
-                </div>
-              )}
-
-              <PublicDisclosureBanner />
-              <ObserverSuggestionsPanel />
-
-              {/* Message Timeline rendered via Polymorphic MasterFeedTile */}
-              <div className="flex-1 overflow-y-auto bg-muted p-4 sm:p-6 flex flex-col">
+              {/* Scrollable Message Timeline */}
+              <div className="flex-1 overflow-y-auto px-6 py-2 flex flex-col min-h-0">
                 {messages.length === 0 ? (
-                  <div className="flex-1 flex flex-col items-center justify-center p-8 text-center my-auto min-h-[220px]">
-                    <div className="text-3xl mb-2 select-none" aria-hidden="true">💬</div>
-                    <h3 className="text-lg font-black uppercase text-dark">No messages yet</h3>
-                    <p className="text-xs font-bold text-dim max-w-sm mt-1">
+                  <div className="flex-1 flex flex-col items-center justify-center text-center my-auto min-h-[200px] text-neutral-400">
+                    <span className="text-3xl mb-2 select-none">💬</span>
+                    <h3 className="font-bold text-sm text-neutral-700">No messages yet</h3>
+                    <p className="text-xs text-neutral-400 max-w-xs mt-1">
                       {userRoleInCurrentRoom === 'observer'
-                        ? 'Waiting for participants to begin their conversation. Drop a suggestion above!'
-                        : 'Say hello to start the conversation! All messages in this stranger chat are public.'}
+                        ? 'Waiting for participants to converse. Drop a suggestion from the right panel!'
+                        : 'Say hello to start the conversation!'}
                     </p>
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-1">
                     {messages.map((msg, idx) => (
                       <MasterFeedTile
                         key={msg._id}
@@ -640,13 +418,14 @@ export default function Home() {
                           isSystem: msg.messageType === 'system',
                           canDelete: canDeleteMessage(msg.username),
                           onDelete: () => handleDeleteMessage(msg._id),
-                          bgColor: getMessageBg(idx, msg.messageType === 'system'),
                           attachment: msg.attachment,
                           attachmentNode: msg.attachment ? (
                             <MediaMessage
                               attachment={msg.attachment}
                               cachedUrl={mediaUrls[msg.attachment.fileId]}
-                              onUrlLoaded={(fileId, url) => setMediaUrls((prev) => ({ ...prev, [fileId]: url }))}
+                              onUrlLoaded={(fileId, url) =>
+                                setMediaUrls((prev) => ({ ...prev, [fileId]: url }))
+                              }
                             />
                           ) : undefined,
                         }}
@@ -657,283 +436,283 @@ export default function Home() {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Message Composer (Disabled in Observer Mode) */}
-              <form onSubmit={handleSendMessage} className="px-4 sm:px-6 py-3 sm:py-4 bg-card border-t-[3px] border-black">
-                {typingUsers.length > 0 && (
-                  <div className="text-xs font-bold mb-2 text-purple">
-                    {typingUsers.length === 1
-                      ? `${typingUsers[0]} is typing...`
-                      : `${typingUsers.length} people are typing...`
-                    }
-                  </div>
-                )}
-                {uploadError && (
-                  <div className="text-xs font-bold mb-2 text-error">{uploadError}</div>
-                )}
-                {pendingFile && (
-                  <div className="flex items-center gap-2 mb-2 p-2 border-2 border-black bg-surface" style={{ borderRadius: 0 }}>
-                    <span className="text-xs font-bold truncate flex-1">{pendingFile.name}</span>
-                    <span className="badge-brutal text-xs bg-card px-1 py-0">{formatFileSize(pendingFile.size)}</span>
-                    <button type="button" onClick={cancelPendingFile} className="btn-brutal bg-error text-white px-2 py-1 text-xs">X</button>
-                  </div>
-                )}
-                {uploadProgress !== null && (
-                  <div className="mb-2">
-                    <div className="w-full h-3 border-2 border-black bg-surface" style={{ borderRadius: 0 }}>
-                      <div className="h-full bg-success transition-all" style={{ width: `${uploadProgress}%`, borderRadius: 0 }} />
-                    </div>
-                    <span className="text-xs font-bold">{uploadProgress}%</span>
-                  </div>
-                )}
-                <div className="flex gap-2 sm:gap-3">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*,video/*,audio/*"
-                    onChange={handleFileSelect}
-                    className="hidden"
-                    disabled={userRoleInCurrentRoom === 'observer'}
-                  />
+              {/* Typing indicator */}
+              {typingUsers.length > 0 && (
+                <div className="px-6 py-1 text-xs text-[#b91c1c] font-semibold italic">
+                  {typingUsers.join(', ')} is typing...
+                </div>
+              )}
+
+              {/* File upload status */}
+              {pendingFile && (
+                <div className="mx-6 mb-2 p-2 bg-neutral-100 rounded-xl flex items-center justify-between text-xs font-semibold">
+                  <span className="truncate">{pendingFile.name}</span>
+                  <button onClick={cancelPendingFile} className="text-red-600 font-bold ml-2">
+                    ✕
+                  </button>
+                </div>
+              )}
+
+              {/* Docked Floating Message Composer */}
+              <form
+                onSubmit={handleSendMessage}
+                className="p-4 pt-2 flex items-center gap-3 bg-[#faf8f5] border-t border-[#f0ece4] flex-shrink-0"
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,video/*,audio/*"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  disabled={userRoleInCurrentRoom === 'observer'}
+                />
+
+                <div className="flex-1 bg-white/80 border border-[#e2ddd5] rounded-2xl px-4 py-2.5 flex items-center gap-3 shadow-xs">
+                  {/* Paperclip Attachment */}
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={sendingMessage || userRoleInCurrentRoom === 'observer'}
-                    className="btn-brutal bg-purple text-white px-3 min-h-11 disabled:opacity-40 disabled:cursor-not-allowed"
-                    title={userRoleInCurrentRoom === 'observer' ? 'Attachments disabled for observers' : 'Attach file'}
+                    disabled={userRoleInCurrentRoom === 'observer'}
+                    className="text-neutral-400 hover:text-neutral-800 transition-colors disabled:opacity-40"
+                    title="Attach file"
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 9.88l-8.49 8.48a2 2 0 0 1-2.83-2.83l7.78-7.77" />
                     </svg>
                   </button>
+
+                  {/* Emoji Icon */}
+                  <button
+                    type="button"
+                    className="text-neutral-400 hover:text-neutral-800 transition-colors"
+                    title="Insert emoji"
+                  >
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                      <line x1="9" y1="9" x2="9.01" y2="9" />
+                      <line x1="15" y1="9" x2="15.01" y2="9" />
+                    </svg>
+                  </button>
+
+                  {/* Text Input */}
                   <input
                     type="text"
                     value={messageText}
                     onChange={(e) => handleTyping(e.target.value)}
-                    placeholder={userRoleInCurrentRoom === 'observer' ? "You are an observer (read-only mode)" : "Type your message..."}
-                    className="input-brutal flex-1 bg-surface min-h-11 disabled:opacity-60 disabled:cursor-not-allowed"
+                    placeholder={
+                      userRoleInCurrentRoom === 'observer'
+                        ? 'You are an observer (read-only mode)'
+                        : 'Type your message...'
+                    }
+                    disabled={userRoleInCurrentRoom === 'observer'}
+                    className="flex-1 bg-transparent text-sm text-neutral-800 placeholder-neutral-400 focus:outline-none font-medium disabled:opacity-60"
                     maxLength={2000}
-                    disabled={sendingMessage || userRoleInCurrentRoom === 'observer'}
                   />
-                  <button
-                    type="submit"
-                    disabled={sendingMessage || (!messageText.trim() && !pendingFile) || userRoleInCurrentRoom === 'observer'}
-                    className={`btn-brutal min-w-24 ${((messageText.trim() || pendingFile) && userRoleInCurrentRoom !== 'observer') ? 'bg-success text-white' : 'bg-gray-200 text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed'}`}
-                  >
-                    {uploadProgress !== null ? `${uploadProgress}%` : sendingMessage ? 'SENDING...' : userRoleInCurrentRoom === 'observer' ? 'READ ONLY' : 'SEND'}
-                  </button>
                 </div>
-              </form>
-            </>
-          ) : (
-            <StrangerChatLanding
-              onOpenSidebar={() => setShowRoomsMenu(true)}
-            />
-          )}
-        </main>
 
-        {currentRoom && (
-          <aside className="hidden md:flex h-full flex-col bg-muted w-80 border-l-[3px] border-black">
-            <VoiceChat />
-          </aside>
+                {/* Crimson Send Button */}
+                <button
+                  type="submit"
+                  disabled={
+                    sendingMessage ||
+                    (!messageText.trim() && !pendingFile) ||
+                    userRoleInCurrentRoom === 'observer'
+                  }
+                  className="bg-[#b91c1c] hover:bg-[#a11818] text-white p-3 rounded-2xl flex items-center justify-center transition-all shadow-md disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+                  title="Send message"
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="translate-x-0.5"
+                  >
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" fill="currentColor" stroke="none" />
+                  </svg>
+                </button>
+              </form>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            <StrangerChatLanding onOpenSidebar={() => setShowRoomsDrawer(true)} />
+          </div>
         )}
       </div>
 
-      <MobileNav
-        isInVoice={isInVoice}
-        isMuted={isMuted}
-        isChatOpen={isChatOpen}
-        hasRoom={!!currentRoom}
-        onJoinVoice={handleJoinVoice}
-        onLeaveVoice={handleLeaveVoice}
-        onToggleMute={handleToggleMute}
-        onToggleChat={handleToggleChat}
-        connecting={connecting}
-      />
-
+      {/* ── 3. RIGHT SIDEBAR (VOICE CHAT & SUGGESTIONS) ── */}
       {currentRoom && (
-        <div
-          className="mobile-only md:hidden fixed overflow-y-auto"
-          style={{
-            background: 'var(--bg-secondary)',
-            zIndex: 20,
-            top: '85px',
-            left: 0,
-            right: 0,
-            bottom: '55px',
-          }}
-        >
-          <VoiceChat
-            isMobile={true}
-            onJoinStateChange={(joined) => {
-              setIsInVoice(joined);
-              setConnecting(false);
-            }}
-            onMuteStateChange={setIsMuted}
-            externalJoinTrigger={joinTrigger}
-            externalLeaveTrigger={leaveTrigger}
-            externalMuteTrigger={muteTrigger}
-          />
-        </div>
+        <RightSidebar
+          onJoinVoice={handleJoinVoice}
+          onLeaveVoice={handleLeaveVoice}
+          isInVoice={isInVoice}
+          connectingVoice={connectingVoice}
+        />
       )}
 
-      {isChatOpen && currentRoom && (
-        <div
-          className="mobile-only md:hidden fixed flex flex-col"
-          style={{
-            background: 'var(--bg-main)',
-            zIndex: 30,
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: '60px',
+      {/* Hidden LiveKit Voice Processor */}
+      <div className="hidden">
+        <VoiceChat
+          onJoinStateChange={(joined) => {
+            setIsInVoice(joined);
+            setConnectingVoice(false);
           }}
-        >
-          <div className="gradient-yellow px-6 py-4 border-b-[3px] border-black">
-            <div className="flex items-center gap-3">
+          externalJoinTrigger={joinTrigger}
+          externalLeaveTrigger={leaveTrigger}
+        />
+      </div>
+
+      {/* ── ROOMS DRAWER / MODAL ── */}
+      {showRoomsDrawer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-[#18181b] text-white rounded-3xl w-full max-w-md p-6 shadow-2xl border border-neutral-800">
+            <div className="flex items-center justify-between pb-4 mb-4 border-b border-neutral-800">
+              <h3 className="text-lg font-bold">Channels & Stranger Rooms</h3>
               <button
-                onClick={() => setIsChatOpen(false)}
-                className="btn-brutal px-3 py-2"
-                style={{ background: 'var(--bg-card)' }}
+                onClick={() => setShowRoomsDrawer(false)}
+                className="text-neutral-400 hover:text-white p-1"
               >
-                BACK
+                ✕
               </button>
-              <div>
-                <h2 className="text-xl font-black"># {currentRoom.name}</h2>
-                {currentRoom.description && <p className="text-xs font-bold opacity-80">{currentRoom.description}</p>}
-              </div>
             </div>
-          </div>
 
-          <PublicDisclosureBanner />
-          <ObserverSuggestionsPanel />
-
-          <div className="flex-1 overflow-y-auto p-4" style={{ background: 'var(--bg-secondary)' }}>
-            <div className="flex flex-col gap-3">
-              {messages.map((msg, idx) => (
-                <div
-                  key={msg._id}
-                  className="card-brutal p-3"
-                  style={{ background: getMessageBg(idx, msg.messageType === 'system') }}
+            <div className="flex flex-col gap-2 max-h-80 overflow-y-auto pr-1">
+              {rooms.map((r) => (
+                <button
+                  key={r._id}
+                  onClick={() => selectRoom(r._id)}
+                  className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all ${
+                    currentRoom?._id === r._id
+                      ? 'bg-[#b91c1c] text-white font-bold'
+                      : 'bg-[#222228] text-neutral-300 hover:bg-[#2c2c34] hover:text-white'
+                  }`}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-black text-xs">{msg.username}</span>
-                    <div className="flex items-center gap-2">
-                      {canDeleteMessage(msg.username) && (
-                        <button
-                          onClick={() => handleDeleteMessage(msg._id)}
-                          className="badge-brutal cursor-pointer hover:bg-error transition-colors"
-                          style={{ width: '24px', height: '24px', background: 'var(--bg-secondary)', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="3 6 5 6 21 6" />
-                            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-                          </svg>
-                        </button>
-                      )}
-                      <span className="badge-brutal text-xs" style={{ background: 'var(--bg-card)' }}>
-                        {format(new Date(msg.createdAt), 'HH:mm')}
-                      </span>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-neutral-400">#</span>
+                    <span className="text-sm font-semibold truncate">{r.name}</span>
                   </div>
-                  {msg.text && <p className="font-medium text-sm">{msg.text}</p>}
-                  {msg.attachment && (
-                    <MediaMessage
-                      attachment={msg.attachment}
-                      cachedUrl={mediaUrls[msg.attachment.fileId]}
-                      onUrlLoaded={(fileId, url) => setMediaUrls((prev) => ({ ...prev, [fileId]: url }))}
-                    />
+                  {r.roomType === 'stranger_chat' && (
+                    <span className="text-[10px] bg-red-950 text-red-300 border border-red-700/50 px-2 py-0.5 rounded-full font-bold">
+                      STRANGER
+                    </span>
                   )}
-                </div>
+                </button>
               ))}
             </div>
-            <div ref={messagesEndRef} />
-          </div>
 
-          <form onSubmit={handleSendMessage} className="px-4 py-3 border-t-[3px] border-black" style={{ background: 'var(--bg-card)' }}>
-            {typingUsers.length > 0 && (
-              <div className="text-xs font-bold mb-2" style={{ color: 'var(--purple)' }}>
-                {typingUsers.length === 1
-                  ? `${typingUsers[0]} is typing...`
-                  : `${typingUsers.length} people are typing...`
-                }
-              </div>
-            )}
-            {uploadError && (
-              <div className="text-xs font-bold mb-2 text-error">{uploadError}</div>
-            )}
-            {pendingFile && (
-              <div className="flex items-center gap-2 mb-2 p-2 border-2 border-black bg-surface" style={{ borderRadius: 0 }}>
-                <span className="text-xs font-bold truncate flex-1">{pendingFile.name}</span>
-                <span className="badge-brutal text-xs bg-card px-1 py-0">{formatFileSize(pendingFile.size)}</span>
-                <button type="button" onClick={cancelPendingFile} className="btn-brutal bg-error text-white px-2 py-1 text-xs">X</button>
-              </div>
-            )}
-            {uploadProgress !== null && (
-              <div className="mb-2">
-                <div className="w-full h-3 border-2 border-black bg-surface" style={{ borderRadius: 0 }}>
-                  <div className="h-full bg-success transition-all" style={{ width: `${uploadProgress}%`, borderRadius: 0 }} />
-                </div>
-                <span className="text-xs font-bold">{uploadProgress}%</span>
-              </div>
-            )}
-            <div className="flex gap-2">
+            <div className="mt-5 pt-4 border-t border-neutral-800 flex justify-between items-center">
               <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={sendingMessage}
-                className="btn-brutal px-3 min-h-11"
-                style={{ background: 'var(--purple)', color: 'white' }}
-                title="Attach file"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
-                </svg>
-              </button>
-              <input
-                type="text"
-                value={messageText}
-                onChange={(e) => handleTyping(e.target.value)}
-                placeholder={userRoleInCurrentRoom === 'observer' ? "You are an observer (read-only mode)" : "Type your message..."}
-                className="input-brutal flex-1 min-h-11 disabled:opacity-60 disabled:cursor-not-allowed"
-                style={{ background: 'var(--bg-main)' }}
-                maxLength={2000}
-                disabled={sendingMessage || userRoleInCurrentRoom === 'observer'}
-              />
-              <button
-                type="submit"
-                disabled={sendingMessage || (!messageText.trim() && !pendingFile) || userRoleInCurrentRoom === 'observer'}
-                className="btn-brutal"
-                style={{
-                  background: ((messageText.trim() || pendingFile) && userRoleInCurrentRoom !== 'observer') ? 'var(--success)' : '#D1D5DB',
-                  color: ((messageText.trim() || pendingFile) && userRoleInCurrentRoom !== 'observer') ? 'white' : '#6B7280',
+                onClick={() => {
+                  setShowCreateRoom(true);
+                  setShowRoomsDrawer(false);
                 }}
+                className="text-xs font-bold text-[#f87171] hover:underline"
               >
-                {uploadProgress !== null ? `${uploadProgress}%` : sendingMessage ? '...' : userRoleInCurrentRoom === 'observer' ? 'VIEW' : 'SEND'}
+                + Create Channel
+              </button>
+              <button
+                onClick={() => setShowRoomsDrawer(false)}
+                className="bg-neutral-800 hover:bg-neutral-700 text-white text-xs font-bold px-4 py-2 rounded-xl"
+              >
+                Close
               </button>
             </div>
-          </form>
+          </div>
         </div>
       )}
 
-      <ConfirmDialog
-        isOpen={deleteConfirm.isOpen}
-        title="DELETE MESSAGE"
-        message="Are you sure you want to delete this message?"
-        confirmText="DELETE"
-        onConfirm={confirmDelete}
-        onCancel={() => setDeleteConfirm({ isOpen: false, messageId: null })}
-      />
+      {/* ── CREATE ROOM MODAL ── */}
+      {showCreateRoom && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-[#18181b] text-white rounded-3xl w-full max-w-md p-6 shadow-2xl border border-neutral-800">
+            <h3 className="text-lg font-bold mb-4">Create Channel</h3>
+            {createRoomError && (
+              <div className="bg-red-900/50 text-red-300 p-2 rounded-lg text-xs mb-3 font-semibold">
+                {createRoomError}
+              </div>
+            )}
+            <form onSubmit={handleCreateRoomSubmit} className="flex flex-col gap-4">
+              <div>
+                <label className="block text-xs font-bold text-neutral-400 mb-1">Room Name</label>
+                <input
+                  type="text"
+                  required
+                  value={newRoomName}
+                  onChange={(e) => setNewRoomName(e.target.value)}
+                  placeholder="e.g. gaming, lounge"
+                  className="w-full bg-[#232328] border border-neutral-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#b91c1c]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-neutral-400 mb-1">Description (Optional)</label>
+                <input
+                  type="text"
+                  value={newRoomDescription}
+                  onChange={(e) => setNewRoomDescription(e.target.value)}
+                  placeholder="Channel topic"
+                  className="w-full bg-[#232328] border border-neutral-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#b91c1c]"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateRoom(false)}
+                  className="px-4 py-2 text-xs font-bold text-neutral-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingRoom}
+                  className="bg-[#b91c1c] hover:bg-red-700 text-white px-5 py-2 rounded-xl text-xs font-bold"
+                >
+                  {creatingRoom ? 'Creating...' : 'Create'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
-      <MatchingModal
-        isOpen={showMatchingModal}
-        onClose={() => setShowMatchingModal(false)}
-      />
-
+      {/* ── MATCHING & MODERATION MODALS ── */}
+      <MatchingModal isOpen={showMatchingModal} onClose={() => setShowMatchingModal(false)} />
       <ReportModal
         isOpen={showReportModal}
         onClose={() => setShowReportModal(false)}
         targetPublicId={matchedPartner?.publicId}
         roomId={currentRoom?._id}
+      />
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        onCancel={() => setDeleteConfirm({ isOpen: false, messageId: null })}
+        onConfirm={confirmDelete}
+        title="Delete Message"
+        message="Are you sure you want to delete this message? This cannot be undone."
       />
     </div>
   );
