@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useStore } from '@/lib/store';
 import { useSocket } from '@/lib/useSocket';
-import { formatDistanceToNow } from 'date-fns';
 
 interface RightSidebarProps {
   onJoinVoice?: () => void;
@@ -18,7 +17,7 @@ export default function RightSidebar({
   isInVoice = false,
   connectingVoice = false,
 }: RightSidebarProps) {
-  const { currentRoom, suggestions, userRoleInCurrentRoom, user } = useStore();
+  const { currentRoom, suggestions, userRoleInCurrentRoom } = useStore();
   const { toggleSuggestionVisibility, sendSuggestion } = useSocket();
 
   const [isVoiceCollapsed, setIsVoiceCollapsed] = useState(false);
@@ -27,7 +26,7 @@ export default function RightSidebar({
   const [suggestionText, setSuggestionText] = useState('');
   const [submittingSugg, setSubmittingSugg] = useState(false);
 
-  // Hidden state per user locally or from backend visibleTo
+  // Hidden state per user locally
   const [hiddenSuggestions, setHiddenSuggestions] = useState<Record<string, boolean>>({
     'mock-2': true,
   });
@@ -35,7 +34,7 @@ export default function RightSidebar({
   const handleToggleEye = (suggId: string) => {
     const isCurrentlyHidden = !!hiddenSuggestions[suggId];
     setHiddenSuggestions((prev) => ({ ...prev, [suggId]: !isCurrentlyHidden }));
-    toggleSuggestionVisibility(suggId, isCurrentlyHidden); // if currently hidden, make visible (true)
+    toggleSuggestionVisibility(suggId, isCurrentlyHidden);
   };
 
   const handleDismiss = (suggId: string) => {
@@ -58,7 +57,7 @@ export default function RightSidebar({
     }
   };
 
-  // Mock placeholder suggestions if none exist in room yet so the mockup look is instant
+  // Mock placeholder suggestions matching mockup
   const displaySuggestions = suggestions.length > 0 ? suggestions : [
     {
       _id: 'mock-1',
@@ -89,40 +88,40 @@ export default function RightSidebar({
     },
   ];
 
-  // Audio wave heights pattern matching the mockup visual
+  // Crimson & Charcoal audio waveform pattern
   const waveBars = [
-    { height: '16px', color: '#b91c1c' },
-    { height: '26px', color: '#ffffff' },
-    { height: '42px', color: '#b91c1c' },
-    { height: '22px', color: '#ffffff' },
-    { height: '34px', color: '#b91c1c' },
-    { height: '50px', color: '#ffffff' },
-    { height: '58px', color: '#b91c1c' },
-    { height: '40px', color: '#ffffff' },
-    { height: '46px', color: '#b91c1c' },
-    { height: '26px', color: '#ffffff' },
-    { height: '36px', color: '#b91c1c' },
-    { height: '20px', color: '#ffffff' },
-    { height: '28px', color: '#b91c1c' },
-    { height: '14px', color: '#ffffff' },
+    { height: '16px', color: '#C51F26' },
+    { height: '26px', color: '#211D1B' },
+    { height: '42px', color: '#C51F26' },
+    { height: '22px', color: '#211D1B' },
+    { height: '34px', color: '#C51F26' },
+    { height: '50px', color: '#211D1B' },
+    { height: '58px', color: '#C51F26' },
+    { height: '40px', color: '#211D1B' },
+    { height: '46px', color: '#C51F26' },
+    { height: '26px', color: '#211D1B' },
+    { height: '36px', color: '#C51F26' },
+    { height: '20px', color: '#211D1B' },
+    { height: '28px', color: '#C51F26' },
+    { height: '14px', color: '#211D1B' },
   ];
 
   return (
-    <aside className="w-80 flex-shrink-0 flex flex-col gap-4 p-4 pr-6 select-none overflow-y-auto bg-transparent z-10">
-      {/* ── CARD 1: VOICE CHAT ── */}
-      <div className="bg-[#18181b]/70 backdrop-blur-md text-white rounded-2xl p-4 shadow-lg border border-white/10">
-        <header className="flex items-center justify-between pb-3 border-b border-neutral-800">
+    <aside className="w-[300px] flex-shrink-0 flex flex-col gap-4 select-none overflow-y-auto z-10">
+      {/* ── CARD 1: VOICE CHAT (Order 1, minHeight 180px) ── */}
+      <div className="order-1 min-h-[180px] bg-[#FFF9F2] text-[#211D1B] rounded-[18px] p-4 border border-[#D8C9BC] shadow-[0_8px_24px_rgba(33,29,27,0.08)]">
+        <header className="flex items-center justify-between pb-3 border-b border-[#D8C9BC]">
           <div className="flex items-center gap-2">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#211D1B]">
               <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
               <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
               <line x1="12" x2="12" y1="19" y2="22" />
             </svg>
-            <h3 className="font-bold text-sm tracking-wide">Voice Chat</h3>
+            <h3 className="font-bold text-sm tracking-wide text-[#211D1B]">Voice Chat</h3>
           </div>
           <button
             onClick={() => setIsVoiceCollapsed(!isVoiceCollapsed)}
-            className="text-neutral-400 hover:text-white p-1 text-xs"
+            className="text-[#81766F] hover:text-[#211D1B] p-1 text-xs"
             aria-label="Toggle voice chat"
           >
             {isVoiceCollapsed ? '⌄' : '⌃'}
@@ -136,8 +135,7 @@ export default function RightSidebar({
               {waveBars.map((bar, i) => (
                 <div
                   key={i}
-                  className={`w-1 rounded-full transition-all duration-300 ${isInVoice ? 'animate-pulse' : ''
-                    }`}
+                  className={`w-1 rounded-full transition-all duration-300 ${isInVoice ? 'animate-pulse' : ''}`}
                   style={{
                     height: bar.height,
                     backgroundColor: bar.color,
@@ -147,17 +145,18 @@ export default function RightSidebar({
               ))}
             </div>
 
-            <p className="text-xs text-neutral-400 font-medium mt-1 mb-4 text-center">
+            <p className="text-xs text-[#81766F] font-medium mt-1 mb-4 text-center">
               {isInVoice ? 'Connected to voice' : 'No one in voice yet'}
             </p>
 
             <button
               onClick={isInVoice ? onLeaveVoice : onJoinVoice}
               disabled={connectingVoice}
-              className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md ${isInVoice
-                  ? 'bg-neutral-800 hover:bg-neutral-700 text-white'
-                  : 'bg-[#b91c1c] hover:bg-[#a11818] text-white'
-                }`}
+              className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 ${
+                isInVoice
+                  ? 'bg-[#211D1B] hover:bg-[#383330] text-white'
+                  : 'bg-[#C51F26] hover:bg-[#A8171D] text-white'
+              }`}
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
@@ -169,18 +168,18 @@ export default function RightSidebar({
         )}
       </div>
 
-      {/* ── CARD 2: SUGGESTIONS ── */}
-      <div className="bg-[#18181b]/70 backdrop-blur-md text-white rounded-2xl p-4 shadow-lg border border-white/10">
-        <header className="flex items-center justify-between pb-3 border-b border-neutral-800">
+      {/* ── CARD 2: SUGGESTIONS (Order 2, minHeight 260px) ── */}
+      <div className="order-2 min-h-[260px] bg-[#FFF9F2] text-[#211D1B] rounded-[18px] p-4 border border-[#D8C9BC] shadow-[0_8px_24px_rgba(33,29,27,0.08)]">
+        <header className="flex items-center justify-between pb-3 border-b border-[#D8C9BC]">
           <div className="flex items-center gap-2">
-            <span className="text-amber-400 text-sm">💡</span>
-            <h3 className="font-bold text-sm tracking-wide">
+            <span className="text-[#C51F26] text-sm">💡</span>
+            <h3 className="font-bold text-sm tracking-wide text-[#211D1B]">
               Suggestions ({displaySuggestions.length})
             </h3>
           </div>
           <button
             onClick={() => setIsSuggestionsCollapsed(!isSuggestionsCollapsed)}
-            className="text-neutral-400 hover:text-white p-1 text-xs"
+            className="text-[#81766F] hover:text-[#211D1B] p-1 text-xs"
             aria-label="Toggle suggestions"
           >
             {isSuggestionsCollapsed ? '⌄' : '⌃'}
@@ -203,17 +202,17 @@ export default function RightSidebar({
               return (
                 <div
                   key={sugg._id}
-                  className={`bg-[#202025]/60 rounded-xl p-3 flex items-start justify-between gap-2.5 border transition-all ${
-                    isHidden ? 'opacity-40 border-transparent' : 'border-white/10'
+                  className={`bg-white rounded-xl p-3 flex items-start justify-between gap-2.5 border transition-all shadow-2xs ${
+                    isHidden ? 'opacity-40 border-transparent bg-neutral-100' : 'border-[#D8C9BC]'
                   }`}
                 >
                   <div className="flex items-start gap-2 min-w-0">
-                    <span className="text-amber-400 text-xs mt-0.5 flex-shrink-0">💡</span>
+                    <span className="text-amber-500 text-xs mt-0.5 flex-shrink-0">💡</span>
                     <div className="min-w-0">
-                      <p className={`text-xs font-medium text-neutral-100 leading-snug break-words ${isHidden ? 'line-through text-neutral-400' : ''}`}>
+                      <p className={`text-xs font-semibold text-[#211D1B] leading-snug break-words ${isHidden ? 'line-through text-[#81766F]' : ''}`}>
                         {sugg.content}
                       </p>
-                      <p className="text-[10px] text-neutral-400 mt-1 truncate">
+                      <p className="text-[10px] text-[#81766F] mt-1 truncate">
                         by #{sugg.observerPublicId} • {timeStr}
                       </p>
                     </div>
@@ -223,10 +222,11 @@ export default function RightSidebar({
                     {/* Visibility Toggle Eye */}
                     <button
                       onClick={() => handleToggleEye(sugg._id)}
-                      className={`p-1.5 rounded-lg text-xs transition-colors ${!isHidden
-                          ? 'bg-[#b91c1c] text-white hover:bg-red-700'
-                          : 'bg-[#2a2a32] text-neutral-400 hover:text-neutral-200'
-                        }`}
+                      className={`p-1.5 rounded-lg text-xs transition-colors ${
+                        !isHidden
+                          ? 'bg-[#C51F26] text-white hover:bg-[#A8171D]'
+                          : 'bg-[#E8DED3] text-[#81766F] hover:text-[#211D1B]'
+                      }`}
                       title={isHidden ? 'Show suggestion' : 'Hide suggestion'}
                     >
                       {isHidden ? (
@@ -236,7 +236,7 @@ export default function RightSidebar({
                         </svg>
                       ) : (
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z" />
                           <circle cx="12" cy="12" r="3" />
                         </svg>
                       )}
@@ -245,7 +245,7 @@ export default function RightSidebar({
                     {/* Dismiss / Check Button */}
                     <button
                       onClick={() => handleDismiss(sugg._id)}
-                      className="p-1.5 rounded-lg text-xs bg-[#2a2a32] text-neutral-300 hover:text-white hover:bg-neutral-700 transition-colors"
+                      className="p-1.5 rounded-lg text-xs bg-[#211D1B] text-white hover:bg-neutral-800 transition-colors"
                       title={isHidden ? 'Accepted' : 'Dismiss suggestion'}
                     >
                       {isHidden ? (
@@ -266,28 +266,28 @@ export default function RightSidebar({
 
             {/* Drop Suggestion Form / Button */}
             {showDropInput ? (
-              <form onSubmit={handleSendSuggestion} className="mt-2 bg-[#202025] p-3 rounded-xl border border-neutral-700">
+              <form onSubmit={handleSendSuggestion} className="mt-2 bg-white p-3 rounded-xl border border-[#D8C9BC] shadow-xs">
                 <textarea
                   rows={2}
                   maxLength={160}
                   value={suggestionText}
                   onChange={(e) => setSuggestionText(e.target.value)}
                   placeholder="Drop a topic, question, or icebreaker..."
-                  className="w-full bg-transparent text-xs text-white placeholder-neutral-500 focus:outline-none resize-none"
+                  className="w-full bg-transparent text-xs text-[#211D1B] placeholder-[#81766F] focus:outline-none resize-none font-medium"
                   autoFocus
                 />
-                <div className="flex justify-end gap-2 mt-2 pt-2 border-t border-neutral-700/60">
+                <div className="flex justify-end gap-2 mt-2 pt-2 border-t border-[#D8C9BC]">
                   <button
                     type="button"
                     onClick={() => setShowDropInput(false)}
-                    className="text-[11px] text-neutral-400 hover:text-white px-2 py-1"
+                    className="text-[11px] text-[#81766F] hover:text-[#211D1B] px-2 py-1 font-semibold"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={!suggestionText.trim() || submittingSugg}
-                    className="bg-[#b91c1c] hover:bg-red-700 text-white text-[11px] font-bold px-3 py-1 rounded-lg disabled:opacity-50"
+                    className="bg-[#C51F26] hover:bg-[#A8171D] text-white text-[11px] font-bold px-3 py-1 rounded-lg disabled:opacity-50"
                   >
                     {submittingSugg ? 'Sending...' : 'Send'}
                   </button>
@@ -296,7 +296,7 @@ export default function RightSidebar({
             ) : (
               <button
                 onClick={() => setShowDropInput(true)}
-                className="mt-2 w-full py-2 px-3 rounded-xl border border-[#b91c1c] text-[#f87171] hover:bg-[#b91c1c]/10 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                className="mt-2 w-full py-2.5 px-3 rounded-xl border border-[#C51F26] text-[#C51F26] hover:bg-[#C51F26]/10 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
               >
                 <span>+</span>
                 <span>Drop a Suggestion</span>
@@ -308,4 +308,3 @@ export default function RightSidebar({
     </aside>
   );
 }
-

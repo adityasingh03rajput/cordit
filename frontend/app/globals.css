@@ -10,7 +10,27 @@ nextjs-portal,
 
 /* Neobrutalism Design System - Enhanced Colors */
 :root {
-  --bg-main: #F5F5F0;
+  /* Cordit — Crimson Paper Design System Tokens */
+  --cordit-bg: #F4EEE7;
+  --cordit-surface: #FFF9F2;
+  --cordit-surface-muted: #E8DED3;
+  --cordit-text: #211D1B;
+  --cordit-text-muted: #81766F;
+  --cordit-primary: #C51F26;
+  --cordit-primary-hover: #A8171D;
+  --cordit-accent: #E6B7A2;
+  --cordit-border: #D8C9BC;
+  --cordit-sidebar: #171616;
+  --cordit-sidebar-text: #F7F1EB;
+  --cordit-system-bg: #F3E3C7;
+  --cordit-system-text: #5C3825;
+  --cordit-incoming-bg: #FFFFFF;
+  --cordit-incoming-border: #E5DAD0;
+  --cordit-outgoing-bg: #C51F26;
+  --cordit-outgoing-text: #FFFFFF;
+  --cordit-success: #2D9B6F;
+  --cordit-danger: #C51F26;
+  --bg-main: #F4EEE7;
   --bg-card: #FFFFFF;
   --bg-accent: #FFE66D;
   --bg-secondary: #E0F2FE;
