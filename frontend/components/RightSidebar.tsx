@@ -228,9 +228,8 @@ export default function RightSidebar({
               return (
                 <div
                   key={sugg._id}
-                  className={`rounded-xl p-3 flex items-start justify-between gap-2.5 border transition-all shadow-2xs ${
-                    isHidden ? 'opacity-40' : ''
-                  }`}
+                  className={`rounded-xl p-3 flex items-start justify-between gap-2.5 border transition-all shadow-2xs ${isHidden ? 'opacity-40' : ''
+                    }`}
                   style={{
                     backgroundColor: theme.incomingBg,
                     borderColor: theme.incomingBorder,
@@ -240,9 +239,8 @@ export default function RightSidebar({
                     <span className="text-amber-500 text-xs mt-0.5 flex-shrink-0">💡</span>
                     <div className="min-w-0">
                       <p
-                        className={`text-xs font-semibold leading-snug break-words ${
-                          isHidden ? 'line-through opacity-60' : ''
-                        }`}
+                        className={`text-xs font-semibold leading-snug break-words ${isHidden ? 'line-through opacity-60' : ''
+                          }`}
                         style={{ color: theme.incomingText }}
                       >
                         {sugg.content}

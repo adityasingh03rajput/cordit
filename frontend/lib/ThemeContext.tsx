@@ -12,7 +12,7 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType>({
   theme: THEME_REGISTRY[DEFAULT_THEME_ID],
   activeWallpaper: THEME_REGISTRY[DEFAULT_THEME_ID].wallpaperUrl,
-  setThemeByWallpaper: () => {},
+  setThemeByWallpaper: () => { },
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -75,3 +75,4 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 export function useTheme() {
   return useContext(ThemeContext);
 }
+

@@ -103,8 +103,8 @@ export const MasterFeedTile = memo(function MasterFeedTile({
     typeof payload.timestamp === 'number'
       ? new Date(payload.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
       : payload.timestamp
-      ? new Date(payload.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-      : '5:03 PM';
+        ? new Date(payload.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+        : '5:03 PM';
 
   // 1. Polymorphic Handler: Chat Messages
   if (payload.kind === 'chat_message') {

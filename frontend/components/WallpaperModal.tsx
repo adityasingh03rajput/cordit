@@ -79,9 +79,8 @@ export default function WallpaperModal({
                 onClick={() => {
                   setThemeByWallpaper(t.id);
                 }}
-                className={`group relative rounded-2xl overflow-hidden border-2 cursor-pointer transition-all hover:scale-102 hover:shadow-lg ${
-                  isSelected ? 'ring-2' : 'hover:opacity-90'
-                }`}
+                className={`group relative rounded-2xl overflow-hidden border-2 cursor-pointer transition-all hover:scale-102 hover:shadow-lg ${isSelected ? 'ring-2' : 'hover:opacity-90'
+                  }`}
                 style={{
                   borderColor: isSelected ? t.primary : theme.border,
                   boxShadow: isSelected ? `0 0 16px ${t.primary}40` : undefined,
