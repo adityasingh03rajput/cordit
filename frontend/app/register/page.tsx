@@ -36,6 +36,7 @@ export default function RegisterPage() {
   const [gender, setGender] = useState<'male' | 'female' | 'other'>('male');
   const [genderPreference, setGenderPreference] = useState<'male' | 'female' | 'any'>('any');
   const [inviteCode, setInviteCode] = useState('');
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [validatingCode, setValidatingCode] = useState(false);
@@ -78,6 +79,12 @@ export default function RegisterPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!ageConfirmed) {
+      setError('You must confirm you are at least 18 years of age to register.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -275,6 +282,21 @@ export default function RegisterPage() {
             </div>
           </div>
 
+          {/* Legal Age Gate & Safety Checkbox */}
+          <div className="flex items-start gap-2.5 my-1 px-1 bg-black/25 border border-purple-500/20 rounded-xl p-2.5">
+            <input
+              type="checkbox"
+              id="ageConfirm"
+              checked={ageConfirmed}
+              onChange={(e) => setAgeConfirmed(e.target.checked)}
+              className="mt-0.5 w-4 h-4 rounded border-purple-500/40 bg-[#1b1031] text-purple-600 focus:ring-purple-500/30 cursor-pointer accent-purple-600 shrink-0"
+              required
+            />
+            <label htmlFor="ageConfirm" className="text-[11px] leading-tight text-purple-200/80 cursor-pointer select-none">
+              I confirm I am <strong className="text-white">18 years of age or older</strong> and agree to the <span className="underline text-purple-300">Public Live Conversation &amp; Broadcast Terms of Service</span>.
+            </label>
+          </div>
+
           {error && (
             <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-red-950/60 border border-red-500/40 text-red-200 text-xs shadow-md backdrop-blur-sm">
               <div className="w-4 h-4 rounded-full bg-red-500/25 border border-red-400/60 text-red-200 flex items-center justify-center font-bold text-[10px] shrink-0">
@@ -286,8 +308,8 @@ export default function RegisterPage() {
 
           <button
             type="submit"
-            disabled={loading}
-            className="w-full h-11 mt-1 rounded-xl bg-gradient-to-r from-[#7c3aed] via-[#8b5cf6] to-[#a855f7] hover:from-[#6d28d9] hover:via-[#7c3aed] hover:to-[#9333ea] text-white font-semibold text-sm shadow-[0_4px_20px_rgba(139,92,246,0.4)] hover:shadow-[0_4px_28px_rgba(139,92,246,0.6)] transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-50"
+            disabled={loading || !ageConfirmed}
+            className="w-full h-11 mt-1 rounded-xl bg-gradient-to-r from-[#7c3aed] via-[#8b5cf6] to-[#a855f7] hover:from-[#6d28d9] hover:via-[#7c3aed] hover:to-[#9333ea] text-white font-semibold text-sm shadow-[0_4px_20px_rgba(139,92,246,0.4)] hover:shadow-[0_4px_28px_rgba(139,92,246,0.6)] transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <span>{loading ? 'Creating ID...' : 'Register & Get ID'}</span>
             <svg

@@ -16,6 +16,7 @@ export const register = Joi.object({
   gender: Joi.string().valid('male', 'female', 'other').default('other'),
   genderPreference: Joi.string().valid('male', 'female', 'any').default('any'),
   inviteCode: Joi.string().optional().allow('').length(8),
+  ageConfirmed: Joi.boolean().optional(),
 });
 
 export const updateProfile = Joi.object({

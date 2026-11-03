@@ -9,6 +9,10 @@ import { logger } from './logger';
 import { config } from '../config';
 import { matchingService } from '../services/matchingService';
 
+// Cooldown tracker to prevent observer suggestion spam (max 1 suggestion per 30s per user)
+const suggestionRateLimitMap = new Map<string, number>();
+const SUGGESTION_COOLDOWN_MS = 30000;
+
 export interface AuthenticatedSocket extends Socket {
   userId?: string;
   userDocId?: string;
@@ -464,6 +468,19 @@ export const initializeSocket = (httpServer: HTTPServer) => {
           socket.emit('error', { message: 'Suggestion too long (max 500 characters)' });
           return;
         }
+
+        // Anti-spam rate limit on observer suggestions (max 1 per 30s)
+        const rateLimitKey = socket.userDocId || (socket.publicId ? String(socket.publicId) : socket.id);
+        const lastSent = suggestionRateLimitMap.get(rateLimitKey) || 0;
+        const now = Date.now();
+        if (now - lastSent < SUGGESTION_COOLDOWN_MS) {
+          const remainingSeconds = Math.ceil((SUGGESTION_COOLDOWN_MS - (now - lastSent)) / 1000);
+          socket.emit('error', {
+            message: 'Rate limit: Please wait ' + remainingSeconds + 's before submitting another suggestion.',
+          });
+          return;
+        }
+        suggestionRateLimitMap.set(rateLimitKey, now);
 
         const room = await Room.findOne({ _id: roomId, isDeleted: false });
         if (!room) {

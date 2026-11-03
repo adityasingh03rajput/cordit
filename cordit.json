@@ -1,9 +1,9 @@
 {
   "project": {
     "name": "Cordit",
-    "version": "1.0.0-beta.1",
+    "version": "1.0.0-beta.2",
     "tagline": "Public stranger chat + voice with live observer mode, music sharing, and dynamic wallpaper glassmorphism",
-    "status": "Alpha / Core Feature Development",
+    "status": "Alpha / Core Feature Hardening",
     "active_branch": "feature/public-stranger-chat",
     "license": "MIT",
     "repository": {
@@ -11,17 +11,54 @@
       "url": "https://github.com/adityasingh03rajput/cordit.git"
     }
   },
+  "production_launch_gate_criteria": {
+    "policy": "HARD BLOCKER — Public registration and DNS traffic are strictly restricted to staging/sandbox until 100% of the following critical safety and infrastructure gates pass verification in code.",
+    "gate_checklist": [
+      {
+        "id": "GATE-01",
+        "category": "Child Safety & CSAM",
+        "requirement": "Automated perceptual hashing (PDQ/PhotoDNA) on media upload pipelines with automated NCMEC referral triggers.",
+        "status": "BLOCKED — Requires third-party hash database integration."
+      },
+      {
+        "id": "GATE-02",
+        "category": "Legal Compliance",
+        "requirement": "18+ Age verification gate and explicit live broadcast terms consent acknowledgment.",
+        "status": "PASSED — Shipped in registration portal (frontend/app/register/page.tsx)."
+      },
+      {
+        "id": "GATE-03",
+        "category": "Anti-Abuse & Rate Limiting",
+        "requirement": "Rate limiting across both HTTP endpoints and WebSocket suggestion events (max 1 suggestion / 30s).",
+        "status": "PASSED — Shipped in socket handler (backend/src/utils/socket.ts) and Express routes."
+      },
+      {
+        "id": "GATE-04",
+        "category": "Voice Audit Pipeline",
+        "requirement": "Rolling in-memory 30s audio buffer with on-demand encrypted transcription via Whisper for reported sessions.",
+        "status": "BLOCKED — Requires LiveKit Egress worker deployment."
+      },
+      {
+        "id": "GATE-05",
+        "category": "Infrastructure Resilience",
+        "requirement": "Migration of matching pool from single-node memory to Redis Streams with consumer group ACK persistence.",
+        "status": "BLOCKED — Requires Redis cluster infrastructure."
+      }
+    ]
+  },
   "scope_and_maturity_reality_check": {
     "summary": "Engineering maturity audit separating verified shipped components from active branches and aspirational roadmap items.",
     "tiers": {
       "shipped_and_verified": [
         "Numeric Anonymous Public IDs (#7368) decoupled from Mongo ObjectIds",
+        "18+ Age Verification Gate & Broadcast Consent Checkbox (frontend/app/register/page.tsx)",
+        "WebSocket Observer Suggestion Anti-Spam Rate Limiter (30s cooldown in backend/src/utils/socket.ts)",
         "JWT-based dual authentication (Public ID or Username + Password)",
         "Ultra-Clear Frosted Glassmorphism UI (12-35% opacity with backdrop-blur-md/xl)",
         "Wallpaper Theming Engine with 8 bespoke artworks and CSS variable reactivity",
         "Violet moonlit glassmorphic login & register portals with eye show/hide toggle",
         "Basic LiveKit WebRTC SFU voice connect and mute controls (local dev binary)",
-        "Next.js App Router API route proxy (frontend:3001 -> backend:3000)",
+        "Next.js App Router API route proxy (frontend:3001 -> backend:3000 via BACKEND_INTERNAL_URL)",
         "Admin control dashboard for viewing reports and managing user accounts"
       ],
       "active_in_development_branch": [
@@ -35,88 +72,73 @@
         "Dynamic audio waveform spectrum meters synchronized to speaking loudness"
       ],
       "planned_roadmap_unshipped": [
-        "Horizontal matching scale via Redis Sorted Sets & Pub/Sub",
+        "Horizontal matching scale via Redis Streams with consumer group ACKs",
         "Automated speech-to-text (Whisper/Deepgram) voice moderation audit pipeline",
         "Automated CSAM/NSFW media hashing (PhotoDNA/Perceptual hash checks)",
-        "Age gate verification (18+) and COPPA/GDPR-K compliance workflows",
-        "Observer suggestion rate limiting and Sybil attack prevention"
+        "Prometheus real-time metrics, tracing, and Slack/Discord abuse alerting"
       ]
     }
   },
-  "legal_safety_and_moderation_risk_assessment": {
-    "overall_risk_profile": "CRITICAL / HIGH RISK — Public stranger chat and real-time voice broadcasting present severe moderation, child safety, and legal liabilities requiring immediate production safeguards.",
-    "risk_factors": [
-      {
-        "domain": "Child Safety & CSAM (NCMEC Compliance)",
-        "severity": "CRITICAL",
-        "threat": "Unmonitored stranger chat platforms attract bad actors. Public broadcast increases exposure velocity exponentially.",
-        "current_status": "Manual user reporting only. Inadequate for public production.",
-        "mandatory_controls": [
-          "Mandatory 18+ age verification gate and clear Terms of Service acknowledgment at registration.",
-          "Automated perceptual media hashing (PhotoDNA / PDQ) on file upload endpoints before storage.",
-          "Automated NCMEC reporting integration for any identified child sexual abuse material."
-        ]
-      },
-      {
-        "domain": "Real-Time Voice Moderation",
-        "severity": "HIGH",
-        "threat": "Voice streams are ephemeral and undetectable by text filters. Bad actors can broadcast hate speech, harassment, or illegal audio to observers without leaving an audit trail.",
-        "current_status": "No voice recording, transcription, or automated moderation pipeline exists.",
-        "required_architecture": [
-          "LiveKit Egress Service connected to a rolling in-memory 30-second encrypted audio buffer.",
-          "Buffer is permanently discarded unless a user presses 'Report Voice'.",
-          "Upon report, audio snippet is sent to an asynchronous speech-to-text engine (OpenAI Whisper or Deepgram) and evaluated with a toxicity/hate-speech classifier."
-        ]
-      },
-      {
-        "domain": "GDPR, DPA & Privacy in Public Broadcasts",
-        "severity": "MEDIUM-HIGH",
-        "threat": "Broadcasting conversations and voice to unverified spectators raises severe privacy, consent, and wiretapping concerns under GDPR, UK DPA, and two-party consent jurisdictions.",
-        "required_safeguards": [
-          "Prominent 'Public Room Disclosure' banner before user connects to voice or text.",
-          "Explicit consent opt-in for spectator observation.",
-          "Right to Erasure API (/api/user/delete) that wipes user profile, message logs, and IP history."
-        ]
-      }
-    ]
+  "single_dev_capacity_and_scope_reduction_plan": {
+    "reality": "A solo developer cannot simultaneously maintain a distributed WebRTC mesh, complex media pipelines, and 24/7 manual moderation.",
+    "cut_scope_and_freezes": [
+      "Music Tab Sharing is frozen as an experimental desktop-only toy with zero support commitments.",
+      "Multi-channel room creation, direct messaging (DMs), and custom stickers are deprioritized until safety gates pass.",
+      "Development resources are 100% focused on stranger matching stability, spectator safety, and automated reporting."
+    ],
+    "timeline_and_milestones": {
+      "milestone_1": "Phase 1: Feature Freeze & Safety Hardening (Age Gate, Rate Limits, Snapshot Reports) — COMPLETED",
+      "milestone_2": "Phase 2: Redis Streams Matching & Distributed State — Target: Sprint 2",
+      "milestone_3": "Phase 3: LiveKit Egress & Whisper Voice Audit Pipeline — Target: Sprint 3",
+      "milestone_4": "Phase 4: Restricted Beta Testing with Invite Codes Only — Target: Sprint 4"
+    }
   },
-  "architecture_deep_dive_and_scaling_blueprint": {
-    "matching_engine": {
-      "current_implementation": "Single-process in-memory TypeScript Map/Array in backend/src/services/matchingService.ts.",
-      "bottlenecks": "Cannot scale beyond a single Node.js instance. Process restart clears waiting queue. Memory leak risk under high concurrency.",
-      "production_scaling_target": {
-        "solution": "Distributed Redis Matching Pool",
-        "mechanism": "Use Redis Sorted Sets (ZADD queue:<gender_pref> <timestamp> <publicId>) for FIFO matching and Redis Pub/Sub for cross-worker match notifications. Cluster-safe and survives server restarts."
-      }
-    },
-    "rate_limiting_and_anti_spam": {
-      "current_implementation": "express-rate-limit applied to HTTP moderation routes (10 requests / 5 minutes in backend/src/routes/moderation.ts).",
-      "deficit_identified": "WebSocket suggestion submission (chat:suggestion:send in backend/src/utils/socket.ts) has NO rate limiter. A malicious observer can flood the participant screen with hundreds of suggestions per minute.",
-      "production_remedy": "Implement a Token Bucket / Sliding Window rate limiter in Socket.io middleware allowing max 1 suggestion per 30 seconds per Public ID / IP."
-    },
-    "voice_webrtc_topology": {
-      "development_mode": "Single binary LiveKit Server running locally with --dev flag (bin/livekit/livekit-server.exe).",
-      "production_topology": [
-        "Multi-node LiveKit SFU cluster deployed behind HAProxy / Nginx ingress with TLS certificates.",
-        "Dedicated STUN/TURN servers (Coturn or LiveKit Cloud) for NAT traversal across restrictive firewalls.",
-        "LiveKit Egress workers deployed on separate worker nodes to handle audio buffering and stream recordings without degrading SFU packet routing."
+  "technical_deep_dive_and_open_questions": {
+    "redis_streams_matching_architecture": {
+      "why_not_pub_sub": "Redis Pub/Sub is fire-and-forget. If a worker crashes after receiving a match event but before establishing the WebSocket room handshake, the match is permanently lost with no retry trail.",
+      "production_solution": "Redis Streams (XADD / XREADGROUP with XACK).",
+      "handshake_protocol": [
+        "1. Worker A enqueues user to Stream (XADD stream:matching * publicId 7368 gender male lookingFor female).",
+        "2. Matchmaker Consumer Group reads pending items with XREADGROUP GROUP matchers.",
+        "3. When compatibility is matched, atomic Lua script moves both users to an active room record in Redis.",
+        "4. Both user sockets receive match_found event. Upon mutual client acknowledgment (ACK), the stream item is acknowledged via XACK.",
+        "5. If a client fails to ACK within 5 seconds, the item is reclaimed by another worker via XAUTOCLAIM."
       ]
     },
-    "network_proxy_and_cors_topology": {
-      "architecture": "Unified Origin Reverse Proxy",
-      "frontend_port": 3001,
-      "backend_port": 3000,
-      "mechanism": "Next.js Route Handler at frontend/app/api/[...path]/route.ts acts as an internal HTTP reverse proxy forwarding all client API calls to BACKEND_INTERNAL_URL (http://localhost:3000).",
-      "advantages": "Eliminates browser CORS friction in local development, forwards authorization headers transparently, and supports standard HTTPS reverse-proxying in containerized production."
+    "voice_audio_buffer_sizing_and_crypto_math": {
+      "specification": "Rolling 30-second encrypted audio buffer per participant stream.",
+      "bandwidth_and_memory_sizing": {
+        "audio_codec": "Opus narrowband/wideband speech at 24 kbps (~3 KB/sec).",
+        "buffer_duration": "30 seconds.",
+        "memory_per_stream": "3 KB/s * 30s = 90 KB per participant.",
+        "scale_calculation_1000_rooms": "1,000 active 2-person rooms = 2,000 active streams. Total RAM required = 2,000 * 90 KB = 180 MB RAM total.",
+        "conclusion": "Memory footprint is extraordinarily lightweight. 180 MB can comfortably run inside a standard 1 GB container."
+      },
+      "cryptographic_overhead": {
+        "cipher": "AES-256-GCM in-memory encryption.",
+        "cpu_cost": "Modern x86/ARM CPUs with hardware AES-NI instructions encrypt 90 KB of buffer data in under 2 microseconds. CPU overhead is negligible (< 0.1% total worker utilization)."
+      }
     },
-    "navigation_model": {
-      "routing_strategy": "Hybrid Next.js Routes + Client-side Tab State",
-      "full_routes": [
-        "/login (Standalone Auth Portal)",
-        "/register (Standalone Registration Portal)",
-        "/admin (Role-guarded Administration Dashboard)"
-      ],
-      "workspace_tabs": "The main dashboard (/) uses Zustand client state (activeTab: 'stranger' | 'rooms' | 'voice' | 'library') rather than hash anchors, preventing fragile URL fragment routing in modern SPA frameworks."
+    "tab_audio_platform_constraints": {
+      "hard_platform_limits": {
+        "desktop_chromium": "Full support (Google Chrome, MS Edge, Brave, Opera) via navigator.mediaDevices.getDisplayMedia({ audio: true }).",
+        "desktop_firefox": "Partial support (requires system audio capture permission).",
+        "desktop_safari": "Unsupported (Apple WebKit sandbox blocks tab audio capture).",
+        "mobile_browsers": "Strictly unsupported on all iOS and Android browsers (mobile OS sandboxes forbid tab audio loopback)."
+      },
+      "ui_degradation_strategy": "The 'Share Tab Music' button detects browser userAgent and capabilities. On unsupported platforms, the button is cleanly disabled with an informative tooltip: 'Tab audio sharing is only supported on Desktop Chrome/Edge'."
+    },
+    "observability_and_abuse_alerting": {
+      "metrics_pipeline": {
+        "collector": "Prometheus scraping /metrics endpoint on backend port 3000.",
+        "core_metrics": [
+          "cordit_active_observers{room_id}: Gauge tracking current spectators",
+          "cordit_reports_total{reason, severity}: Counter tracking filed abuse reports",
+          "cordit_suggestion_rate{public_id}: Counter measuring suggestion velocity",
+          "cordit_voice_seconds_total: Counter tracking WebRTC egress duration"
+        ]
+      },
+      "real_time_alerting": "Alertmanager webhooks triggering high-priority Slack/Discord/PagerDuty alerts when any room experiences >= 3 report submissions within 60 seconds, triggering automated room quarantine."
     }
   },
   "theming_and_design_system": {
