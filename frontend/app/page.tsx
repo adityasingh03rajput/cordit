@@ -14,6 +14,7 @@ import ReportModal from '@/components/ReportModal';
 import StrangerChatLanding from '@/components/StrangerChatLanding';
 import LeftNavigation from '@/components/LeftNavigation';
 import WallpaperModal from '@/components/WallpaperModal';
+import { useTheme } from '@/lib/ThemeContext';
 import TopHeader from '@/components/TopHeader';
 import RightSidebar from '@/components/RightSidebar';
 import { MasterFeedTile } from '@/components/MasterFeedTile';
@@ -48,17 +49,7 @@ export default function Home() {
   const [showRoomsDrawer, setShowRoomsDrawer] = useState(false);
   const [activeNavTab, setActiveNavTab] = useState<'home' | 'stranger_chat' | 'rooms' | 'voice_rooms' | 'library'>('stranger_chat');
   const [showWallpaperModal, setShowWallpaperModal] = useState(false);
-  const [activeWallpaper, setActiveWallpaper] = useState('/image.png');
-
-  useEffect(() => {
-    const saved = localStorage.getItem('cordit_wallpaper');
-    if (saved) setActiveWallpaper(saved);
-  }, []);
-
-  const handleSelectWallpaper = (url: string) => {
-    setActiveWallpaper(url);
-    localStorage.setItem('cordit_wallpaper', url);
-  };
+  const { theme, activeWallpaper, setThemeByWallpaper } = useTheme();
 
   // Voice Chat States
   const [isInVoice, setIsInVoice] = useState(false);
@@ -357,16 +348,16 @@ export default function Home() {
 
   return (
     <div
-      className="h-screen w-screen min-w-[320px] overflow-hidden flex flex-col select-none relative"
+      className="h-screen w-screen min-w-[320px] overflow-hidden flex flex-col select-none relative transition-colors duration-300"
       style={{
-        backgroundColor: '#F4EEE7',
+        backgroundColor: theme.background,
         backgroundImage: `url('${activeWallpaper}')`,
         backgroundSize: 'auto 100%',
         backgroundPosition: 'left bottom',
         backgroundRepeat: 'no-repeat',
       }}
     >
-      {/* ── TOP HEADER (height: 64px, width: 100%, background: #FFF9F2, borderBottom: 1px solid #D8C9BC) ── */}
+      {/* ── TOP HEADER (height: 64px, width: 100%) ── */}
       <TopHeader onOpenWallpapers={() => setShowWallpaperModal(true)} />
 
       {/* ── MAIN LAYOUT (below-header, height: calc(100vh - 64px), grid: 220px 1fr 300px, gap: 16px, p: 16px) ── */}
@@ -388,26 +379,51 @@ export default function Home() {
 
         {/* ── 2. CENTER CHAT VIEWPORT ── */}
         {currentRoom ? (
-          <div className="flex-1 bg-[#FFF9F2]/92 backdrop-blur-[10px] rounded-[24px] border border-[#D8C9BC] shadow-[0_8px_24px_rgba(33,29,27,0.10)] flex flex-col min-h-0 min-w-0 overflow-hidden relative">
-            {/* Chat Header (height: 64px, padding: 0 20px, borderBottom: 1px solid #D8C9BC) */}
-            <div className="h-16 px-5 border-b border-[#D8C9BC] flex items-center justify-between select-none flex-shrink-0 bg-[#FFF9F2]">
+          <div
+            className="flex-1 rounded-[24px] border shadow-[0_8px_24px_rgba(33,29,27,0.10)] flex flex-col min-h-0 min-w-0 overflow-hidden relative transition-colors duration-300 backdrop-blur-[10px]"
+            style={{
+              backgroundColor: theme.surface,
+              borderColor: theme.border,
+            }}
+          >
+            {/* Chat Header (height: 64px, padding: 0 20px, borderBottom) */}
+            <div
+              className="h-16 px-5 border-b flex items-center justify-between select-none flex-shrink-0 transition-colors duration-300"
+              style={{
+                backgroundColor: theme.surfaceSolid,
+                borderColor: theme.border,
+              }}
+            >
               <div className="flex items-center gap-3 flex-wrap">
-                {/* Title with Crimson Underline */}
+                {/* Title with Dynamic Underline */}
                 <div className="flex flex-col">
-                  <h2 className="text-lg font-bold tracking-tight text-[#211D1B] flex items-center gap-1.5">
+                  <h2 className="text-lg font-bold tracking-tight flex items-center gap-1.5" style={{ color: theme.text }}>
                     <span>#</span>
                     <span>Stranger Chat</span>
                   </h2>
-                  <div className="h-[2.5px] bg-[#C51F26] w-full rounded-full mt-0.5" />
+                  <div className="h-[2.5px] w-full rounded-full mt-0.5" style={{ backgroundColor: theme.primary }} />
                 </div>
 
                 {/* Partners Tag */}
-                <div className="border border-[#D8C9BC] bg-white font-mono font-bold text-xs px-2.5 py-0.5 rounded-md text-[#211D1B] shadow-2xs">
+                <div
+                  className="border font-mono font-bold text-xs px-2.5 py-0.5 rounded-md shadow-2xs"
+                  style={{
+                    backgroundColor: theme.incomingBg,
+                    borderColor: theme.border,
+                    color: theme.text,
+                  }}
+                >
                   {roomTag}
                 </div>
 
                 {/* PUBLIC ROOM Badge */}
-                <div className="bg-[#C51F26] text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
+                <div
+                  className="text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-2xs"
+                  style={{
+                    backgroundColor: theme.primary,
+                    color: theme.outgoingText,
+                  }}
+                >
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" />
                     <line x1="2" y1="12" x2="22" y2="12" />
@@ -417,8 +433,15 @@ export default function Home() {
                 </div>
 
                 {/* Observer Count */}
-                <div className="border border-[#D8C9BC] bg-white text-xs font-semibold px-2.5 py-0.5 rounded-full text-[#211D1B] flex items-center gap-1.5 shadow-2xs">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#81766F]">
+                <div
+                  className="border text-xs font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1.5 shadow-2xs"
+                  style={{
+                    backgroundColor: theme.incomingBg,
+                    borderColor: theme.border,
+                    color: theme.text,
+                  }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: theme.textMuted }}>
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                     <circle cx="12" cy="12" r="3" />
                   </svg>
@@ -430,14 +453,16 @@ export default function Home() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowReportModal(true)}
-                  className="text-[#81766F] hover:text-[#C51F26] font-bold text-xs flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-[#E8DED3]/60 transition-colors"
+                  className="font-bold text-xs flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:opacity-80 transition-colors"
+                  style={{ color: theme.textMuted }}
                 >
-                  <span className="text-[#C51F26]">🚩</span>
+                  <span style={{ color: theme.primary }}>🚩</span>
                   <span className="hidden sm:inline">Report</span>
                 </button>
                 <button
                   onClick={handleLeaveRoom}
-                  className="text-[#81766F] hover:text-[#C51F26] font-bold text-xs flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-[#E8DED3]/60 transition-colors"
+                  className="font-bold text-xs flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:opacity-80 transition-colors"
+                  style={{ color: theme.textMuted }}
                 >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -449,8 +474,15 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Public Room Notice (below-chat-header, padding: 10px 20px, background: #F3E3C7, textColor: #5C3825) */}
-            <div className="bg-[#F3E3C7] text-[#5C3825] px-5 py-2 text-xs font-semibold flex items-center gap-2 border-b border-[#D8C9BC]/60 flex-shrink-0">
+            {/* Public Room Notice */}
+            <div
+              className="px-5 py-2 text-xs font-semibold flex items-center gap-2 border-b flex-shrink-0 transition-colors duration-300"
+              style={{
+                backgroundColor: theme.systemBg,
+                color: theme.systemText,
+                borderColor: theme.border,
+              }}
+            >
               <span className="text-sm">💡</span>
               <span>Public room — Observers can watch and drop suggestions. Keep conversations respectful.</span>
             </div>
@@ -475,17 +507,24 @@ export default function Home() {
             <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col min-h-0">
               {/* Date Divider (Today) */}
               <div className="flex items-center justify-center my-2 relative px-8 flex-shrink-0">
-                <div className="absolute inset-x-8 h-px bg-[#D8C9BC]" />
-                <span className="relative bg-[#FFF9F2] rounded-full px-4 py-0.5 text-xs font-bold text-[#81766F] select-none shadow-2xs border border-[#D8C9BC]">
+                <div className="absolute inset-x-8 h-px" style={{ backgroundColor: theme.border }} />
+                <span
+                  className="relative rounded-full px-4 py-0.5 text-xs font-bold select-none shadow-2xs border"
+                  style={{
+                    backgroundColor: theme.surfaceSolid,
+                    color: theme.textMuted,
+                    borderColor: theme.border,
+                  }}
+                >
                   Today
                 </span>
               </div>
 
               {messages.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-center my-auto min-h-[200px] text-[#81766F]">
+                <div className="flex-1 flex flex-col items-center justify-center text-center my-auto min-h-[200px]" style={{ color: theme.textMuted }}>
                   <span className="text-3xl mb-2 select-none">💬</span>
-                  <h3 className="font-bold text-sm text-[#211D1B]">No messages yet</h3>
-                  <p className="text-xs text-[#81766F] max-w-xs mt-1">
+                  <h3 className="font-bold text-sm" style={{ color: theme.text }}>No messages yet</h3>
+                  <p className="text-xs max-w-xs mt-1" style={{ color: theme.textMuted }}>
                     {userRoleInCurrentRoom === 'observer'
                       ? 'Waiting for participants to converse. Drop a suggestion from the right panel!'
                       : 'Say hello to start the conversation!'}
@@ -529,25 +568,36 @@ export default function Home() {
 
             {/* Typing indicator */}
             {typingUsers.length > 0 && (
-              <div className="px-6 py-1 text-xs text-[#C51F26] font-semibold italic">
+              <div className="px-6 py-1 text-xs font-semibold italic" style={{ color: theme.primary }}>
                 {typingUsers.join(', ')} is typing...
               </div>
             )}
 
             {/* File upload status */}
             {pendingFile && (
-              <div className="mx-6 mb-2 p-2 bg-[#E8DED3] rounded-xl flex items-center justify-between text-xs font-semibold text-[#211D1B]">
+              <div
+                className="mx-6 mb-2 p-2 rounded-xl flex items-center justify-between text-xs font-semibold border"
+                style={{
+                  backgroundColor: theme.surfaceMuted,
+                  color: theme.text,
+                  borderColor: theme.border,
+                }}
+              >
                 <span className="truncate">{pendingFile.name}</span>
-                <button onClick={cancelPendingFile} className="text-[#C51F26] font-bold ml-2">
+                <button onClick={cancelPendingFile} className="font-bold ml-2" style={{ color: theme.primary }}>
                   ✕
                 </button>
               </div>
             )}
 
-            {/* Composer (position: bottom, padding: 16px 20px, background: rgba(255, 249, 242, 0.96), borderTop: 1px solid #D8C9BC) */}
+            {/* Composer */}
             <form
               onSubmit={handleSendMessage}
-              className="p-[16px_20px] flex items-center gap-3 bg-[#FFF9F2]/96 border-t border-[#D8C9BC] flex-shrink-0"
+              className="p-[16px_20px] flex items-center gap-3 border-t flex-shrink-0 transition-colors duration-300"
+              style={{
+                backgroundColor: theme.surfaceSolid,
+                borderColor: theme.border,
+              }}
             >
               <input
                 ref={fileInputRef}
@@ -558,13 +608,20 @@ export default function Home() {
                 disabled={userRoleInCurrentRoom === 'observer'}
               />
 
-              <div className="flex-1 h-[48px] bg-white border border-[#D8C9BC] rounded-2xl px-4 flex items-center gap-3 shadow-2xs">
+              <div
+                className="flex-1 h-[48px] border rounded-2xl px-4 flex items-center gap-3 shadow-2xs transition-colors"
+                style={{
+                  backgroundColor: theme.incomingBg,
+                  borderColor: theme.border,
+                }}
+              >
                 {/* Paperclip Attachment */}
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={userRoleInCurrentRoom === 'observer'}
-                  className="text-[#81766F] hover:text-[#211D1B] transition-colors disabled:opacity-40"
+                  className="transition-colors disabled:opacity-40"
+                  style={{ color: theme.textMuted }}
                   title="Attach file"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -575,7 +632,8 @@ export default function Home() {
                 {/* Emoji Icon */}
                 <button
                   type="button"
-                  className="text-[#81766F] hover:text-[#211D1B] transition-colors"
+                  className="transition-colors"
+                  style={{ color: theme.textMuted }}
                   title="Insert emoji"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -597,12 +655,13 @@ export default function Home() {
                       : 'Type your message...'
                   }
                   disabled={userRoleInCurrentRoom === 'observer'}
-                  className="flex-1 bg-transparent text-sm text-[#211D1B] placeholder-[#81766F] focus:outline-none font-medium disabled:opacity-60"
+                  className="flex-1 bg-transparent text-sm focus:outline-none font-medium disabled:opacity-60"
+                  style={{ color: theme.incomingText }}
                   maxLength={2000}
                 />
               </div>
 
-              {/* Crimson Send Button (48px) */}
+              {/* Dynamic Theme Send Button (48px) */}
               <button
                 type="submit"
                 disabled={
@@ -610,7 +669,11 @@ export default function Home() {
                   (!messageText.trim() && !pendingFile) ||
                   userRoleInCurrentRoom === 'observer'
                 }
-                className="w-[48px] h-[48px] bg-[#C51F26] hover:bg-[#A8171D] active:scale-95 text-white rounded-2xl flex items-center justify-center transition-all shadow-md disabled:cursor-not-allowed disabled:opacity-40 flex-shrink-0"
+                className="w-[48px] h-[48px] active:scale-95 rounded-2xl flex items-center justify-center transition-all shadow-md disabled:cursor-not-allowed disabled:opacity-40 flex-shrink-0 hover:scale-102"
+                style={{
+                  backgroundColor: theme.primary,
+                  color: theme.outgoingText,
+                }}
                 title="Send message"
               >
                 <svg
@@ -631,7 +694,13 @@ export default function Home() {
             </form>
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto px-6 py-4 bg-[#FFF9F2]/90 backdrop-blur-md rounded-[24px] border border-[#D8C9BC]">
+          <div
+            className="flex-1 overflow-y-auto px-6 py-4 rounded-[24px] border backdrop-blur-md"
+            style={{
+              backgroundColor: theme.surface,
+              borderColor: theme.border,
+            }}
+          >
             <StrangerChatLanding onOpenSidebar={() => setShowRoomsDrawer(true)} />
           </div>
         )}
@@ -647,11 +716,9 @@ export default function Home() {
         )}
       </main>
 
-      {/* ── WALLPAPER GALLERY MODAL ── */}
+      {/* ── WALLPAPER & THEME GALLERY MODAL ── */}
       <WallpaperModal
         isOpen={showWallpaperModal}
-        activeWallpaper={activeWallpaper}
-        onSelect={handleSelectWallpaper}
         onClose={() => setShowWallpaperModal(false)}
       />
 

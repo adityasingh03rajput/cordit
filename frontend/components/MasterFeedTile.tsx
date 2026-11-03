@@ -3,6 +3,7 @@
 import React, { memo } from 'react';
 import type { PolymorphicFeedPayload } from '@/lib/feedTypes';
 import { ADAPTATION_MATRIX } from '@/lib/feedStrategies';
+import { useTheme } from '@/lib/ThemeContext';
 
 interface MasterFeedTileProps {
   payload: PolymorphicFeedPayload;
@@ -96,6 +97,7 @@ export const MasterFeedTile = memo(function MasterFeedTile({
   style,
 }: MasterFeedTileProps) {
   const strategy = ADAPTATION_MATRIX[payload.kind];
+  const { theme } = useTheme();
 
   const formattedTime =
     typeof payload.timestamp === 'number'
@@ -110,9 +112,23 @@ export const MasterFeedTile = memo(function MasterFeedTile({
     if (payload.isSystem) {
       return (
         <div className={`w-full flex justify-center my-3 px-2 ${className}`} style={style}>
-          <div className="border border-[#D8C9BC] bg-[#F3E3C7] text-[#5C3825] rounded-full px-5 py-2 flex items-center justify-between w-full max-w-2xl shadow-xs text-xs">
+          <div
+            className="border rounded-full px-5 py-2 flex items-center justify-between w-full max-w-2xl shadow-xs text-xs transition-colors duration-300"
+            style={{
+              backgroundColor: theme.systemBg,
+              color: theme.systemText,
+              borderColor: theme.border,
+            }}
+          >
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-5 h-5 rounded-full border border-red-300 flex items-center justify-center text-red-600 bg-red-50 text-[10px] flex-shrink-0">
+              <div
+                className="w-5 h-5 rounded-full border flex items-center justify-center text-[10px] flex-shrink-0"
+                style={{
+                  borderColor: theme.primary,
+                  backgroundColor: `${theme.primary}20`,
+                  color: theme.primary,
+                }}
+              >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                   <circle cx="9" cy="7" r="4" />
@@ -120,10 +136,17 @@ export const MasterFeedTile = memo(function MasterFeedTile({
                   <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                 </svg>
               </div>
-              <span className="text-[#C51F26] font-black tracking-wide text-xs">System</span>
-              <span className="text-[#5C3825] font-semibold truncate">{payload.content}</span>
+              <span className="font-black tracking-wide text-xs" style={{ color: theme.primary }}>
+                System
+              </span>
+              <span className="font-semibold truncate" style={{ color: theme.systemText }}>
+                {payload.content}
+              </span>
             </div>
-            <span className="text-[#81766F] text-xs tabular-nums flex-shrink-0 ml-4">
+            <span
+              className="text-xs tabular-nums flex-shrink-0 ml-4 opacity-80"
+              style={{ color: theme.systemText }}
+            >
               {formattedTime}
             </span>
           </div>
@@ -132,10 +155,6 @@ export const MasterFeedTile = memo(function MasterFeedTile({
     }
 
     // Determine layout alignment to match the target mockup exactly:
-    // Special layout cases matching the mockup dialogue:
-    // - "tum user 2 se baat karti ho": Left-aligned (Admin Boy on Left with Dark Bubble)
-    // - "han karti hai vo": Right-aligned (Girl on Right with Crimson Bubble)
-    // - Default: role === 'self' -> Right (Crimson), otherwise -> Left (Dark)
     const isMockFirstAdminMessage = payload.content?.includes('tum user 2 se baat karti ho');
     const isMockGirlReplyRight = payload.content?.includes('han karti hai vo');
 
@@ -144,15 +163,25 @@ export const MasterFeedTile = memo(function MasterFeedTile({
     const showHeader = !isMockGirlReplyRight;
 
     if (alignRight) {
-      // ── RIGHT-ALIGNED MESSAGE (Crimson Bubble) ──
+      // ── RIGHT-ALIGNED MESSAGE (Outgoing Theme Bubble) ──
       return (
         <div className={`flex flex-col items-end my-2.5 px-2 ${className}`} style={style}>
           <div className="flex items-center gap-2 mb-1.5 mr-1">
-            <span className="text-neutral-400 text-xs tabular-nums">{formattedTime}</span>
+            <span className="text-xs tabular-nums" style={{ color: theme.textMuted }}>
+              {formattedTime}
+            </span>
             {showHeader && (
               <>
-                <span className="font-bold text-xs text-neutral-800">{payload.sender.username}</span>
-                <span className="bg-[#C51F26] text-white text-[9px] font-black px-1.5 py-0.5 rounded-sm tracking-wider">
+                <span className="font-bold text-xs" style={{ color: theme.text }}>
+                  {payload.sender.username}
+                </span>
+                <span
+                  className="text-[9px] font-black px-1.5 py-0.5 rounded-sm tracking-wider"
+                  style={{
+                    backgroundColor: theme.primary,
+                    color: theme.outgoingText,
+                  }}
+                >
                   YOU
                 </span>
               </>
@@ -161,7 +190,13 @@ export const MasterFeedTile = memo(function MasterFeedTile({
           </div>
 
           <div className="relative max-w-[72%]">
-            <div className="bg-[#C51F26] text-white rounded-[16px] px-4 py-3 shadow-sm text-sm font-medium leading-relaxed break-words">
+            <div
+              className="rounded-[16px] px-4 py-3 shadow-sm text-sm font-medium leading-relaxed break-words transition-colors duration-300"
+              style={{
+                backgroundColor: theme.outgoingBg,
+                color: theme.outgoingText,
+              }}
+            >
               {payload.content}
               {payload.attachmentNode && (
                 <div className="mt-2 pt-2 border-t border-white/20">
@@ -174,27 +209,44 @@ export const MasterFeedTile = memo(function MasterFeedTile({
       );
     }
 
-    // ── LEFT-ALIGNED MESSAGE (Dark Charcoal Bubble) ──
+    // ── LEFT-ALIGNED MESSAGE (Incoming Theme Bubble) ──
     const isSelfOnLeft = isMockFirstAdminMessage || payload.sender.role === 'self';
 
     return (
       <div className={`flex flex-col items-start my-2.5 px-2 ${className}`} style={style}>
         <div className="flex items-center gap-2 mb-1.5 ml-1">
           <AnimeAvatar variant={isBoy ? 'boy' : 'girl'} />
-          <span className="font-bold text-xs text-neutral-800">{payload.sender.username}</span>
+          <span className="font-bold text-xs" style={{ color: theme.text }}>
+            {payload.sender.username}
+          </span>
           {isSelfOnLeft && (
-            <span className="bg-[#b91c1c] text-white text-[9px] font-black px-1.5 py-0.5 rounded-sm tracking-wider">
+            <span
+              className="text-[9px] font-black px-1.5 py-0.5 rounded-sm tracking-wider"
+              style={{
+                backgroundColor: theme.primary,
+                color: theme.outgoingText,
+              }}
+            >
               YOU
             </span>
           )}
-          <span className="text-neutral-400 text-xs tabular-nums">{formattedTime}</span>
+          <span className="text-xs tabular-nums" style={{ color: theme.textMuted }}>
+            {formattedTime}
+          </span>
         </div>
 
         <div className="relative max-w-[72%]">
-          <div className="bg-[#FFFFFF] text-[#211D1B] border border-[#E5DAD0] rounded-[16px] px-4 py-3 shadow-sm text-sm font-medium leading-relaxed break-words">
+          <div
+            className="border rounded-[16px] px-4 py-3 shadow-sm text-sm font-medium leading-relaxed break-words transition-colors duration-300"
+            style={{
+              backgroundColor: theme.incomingBg,
+              color: theme.incomingText,
+              borderColor: theme.incomingBorder,
+            }}
+          >
             {payload.content}
             {payload.attachmentNode && (
-              <div className="mt-2 pt-2 border-t border-neutral-700">
+              <div className="mt-2 pt-2 border-t" style={{ borderColor: theme.border }}>
                 {payload.attachmentNode}
               </div>
             )}
@@ -206,19 +258,21 @@ export const MasterFeedTile = memo(function MasterFeedTile({
 
   // 2. Status Alert
   if (payload.kind === 'status_alert') {
-    const severityBorder =
-      payload.severity === 'error' ? 'border-[#b91c1c] bg-red-50 text-red-900' :
-      payload.severity === 'warning' ? 'border-amber-500 bg-amber-50 text-amber-900' :
-      'border-neutral-400 bg-neutral-50 text-neutral-900';
-
     return (
       <div
         role="alert"
-        className={`rounded-2xl border-l-4 p-4 shadow-sm relative ${severityBorder} ${className}`}
-        style={style}
+        className={`rounded-2xl border-l-4 p-4 shadow-sm relative ${className}`}
+        style={{
+          backgroundColor: theme.surfaceSolid,
+          borderLeftColor: theme.primary,
+          color: theme.text,
+          ...style,
+        }}
       >
         <div className="flex items-center justify-between gap-2">
-          <span className="font-bold text-xs uppercase tracking-wider">{payload.title}</span>
+          <span className="font-bold text-xs uppercase tracking-wider" style={{ color: theme.primary }}>
+            {payload.title}
+          </span>
           <span className="text-[11px] opacity-60 tabular-nums">{formattedTime}</span>
         </div>
         <p className="text-xs mt-1 font-medium leading-relaxed">{payload.description}</p>
@@ -231,16 +285,30 @@ export const MasterFeedTile = memo(function MasterFeedTile({
     return (
       <div
         role="status"
-        className={`rounded-2xl bg-white border border-[#e2ddd5] p-4 shadow-sm ${className}`}
-        style={style}
+        className={`rounded-2xl border p-4 shadow-sm ${className}`}
+        style={{
+          backgroundColor: theme.surfaceSolid,
+          borderColor: theme.border,
+          color: theme.text,
+          ...style,
+        }}
       >
-        <div className="flex items-center justify-between gap-2 border-b border-neutral-100 pb-2 mb-2">
-          <span className="bg-[#b91c1c] text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
+        <div
+          className="flex items-center justify-between gap-2 border-b pb-2 mb-2"
+          style={{ borderColor: theme.border }}
+        >
+          <span
+            className="text-[10px] font-black px-2 py-0.5 rounded-full uppercase"
+            style={{
+              backgroundColor: theme.primary,
+              color: theme.outgoingText,
+            }}
+          >
             Stranger Event
           </span>
-          <span className="text-[11px] text-neutral-400 tabular-nums">{formattedTime}</span>
+          <span className="text-[11px] opacity-60 tabular-nums">{formattedTime}</span>
         </div>
-        <p className="text-xs text-neutral-700 font-medium leading-relaxed">{payload.summary}</p>
+        <p className="text-xs font-medium leading-relaxed">{payload.summary}</p>
       </div>
     );
   }
@@ -249,14 +317,19 @@ export const MasterFeedTile = memo(function MasterFeedTile({
   return (
     <div
       role="log"
-      className={`rounded-xl bg-[#18181b] text-[#22c55e] p-3 font-mono text-xs border border-neutral-800 ${className}`}
-      style={style}
+      className={`rounded-xl p-3 font-mono text-xs border ${className}`}
+      style={{
+        backgroundColor: theme.sidebar,
+        borderColor: theme.border,
+        color: '#22c55e',
+        ...style,
+      }}
     >
-      <div className="flex items-center justify-between text-neutral-400 text-[10px] mb-1">
+      <div className="flex items-center justify-between opacity-60 text-[10px] mb-1">
         <span>[{payload.origin}] • {payload.level}</span>
         <span className="tabular-nums">{formattedTime}</span>
       </div>
-      <p className="text-neutral-200">{payload.message}</p>
+      <p style={{ color: theme.sidebarText }}>{payload.message}</p>
     </div>
   );
 });

@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import { useTheme } from '@/lib/ThemeContext';
+import { THEME_REGISTRY } from '@/lib/themeRegistry';
 
 export interface WallpaperOption {
   id: string;
@@ -9,121 +11,137 @@ export interface WallpaperOption {
   previewUrl: string;
 }
 
-export const WALLPAPER_LIST: WallpaperOption[] = [
-  {
-    id: 'crimson-wanderer',
-    name: 'Crimson Sumi-e Sunset Wanderer',
-    filename: '/image.png',
-    previewUrl: '/image.png',
-  },
-  {
-    id: 'headphones-red-moon',
-    name: 'Headphones Beneath the Red Moon',
-    filename: '/wallpapers/headphones-beneath-the-red-moon.png',
-    previewUrl: '/wallpapers/headphones-beneath-the-red-moon.png',
-  },
-  {
-    id: 'crimson-mist-torii',
-    name: 'Crimson Mist Torii Landscape',
-    filename: '/wallpapers/crimson-mist-torii-landscape.png',
-    previewUrl: '/wallpapers/crimson-mist-torii-landscape.png',
-  },
-  {
-    id: 'anime-sunset',
-    name: 'Anime Sunset Serenity with Torii',
-    filename: '/wallpapers/anime-sunset.png',
-    previewUrl: '/wallpapers/anime-sunset.png',
-  },
-  {
-    id: 'cherry-blossom',
-    name: 'Moonlit Cherry Blossom Mountain',
-    filename: '/wallpapers/cherry-blossom.png',
-    previewUrl: '/wallpapers/cherry-blossom.png',
-  },
-  {
-    id: 'samurai-moon',
-    name: 'Samurai Under the Violet Moon',
-    filename: '/wallpapers/samurai-moon.png',
-    previewUrl: '/wallpapers/samurai-moon.png',
-  },
-  {
-    id: 'starlit-valley',
-    name: 'Starlit Valley Beneath Golden Tree',
-    filename: '/wallpapers/starlit-valley.png',
-    previewUrl: '/wallpapers/starlit-valley.png',
-  },
-  {
-    id: 'aurora-valley',
-    name: 'Aurora Over the Snowy Valley',
-    filename: '/wallpapers/aurora-valley.png',
-    previewUrl: '/wallpapers/aurora-valley.png',
-  },
-];
+export const WALLPAPER_LIST: WallpaperOption[] = Object.values(THEME_REGISTRY).map((t) => ({
+  id: t.id,
+  name: t.name,
+  filename: t.wallpaperUrl,
+  previewUrl: t.wallpaperUrl,
+}));
 
 interface WallpaperModalProps {
   isOpen: boolean;
-  activeWallpaper: string;
-  onSelect: (url: string) => void;
   onClose: () => void;
 }
 
 export default function WallpaperModal({
   isOpen,
-  activeWallpaper,
-  onSelect,
   onClose,
 }: WallpaperModalProps) {
+  const { theme, activeWallpaper, setThemeByWallpaper } = useTheme();
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="bg-[#FFF9F2] text-[#211D1B] border border-[#D8C9BC] rounded-3xl w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+      <div
+        className="rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[88vh] border transition-colors duration-300"
+        style={{
+          backgroundColor: theme.surfaceSolid,
+          color: theme.text,
+          borderColor: theme.border,
+        }}
+      >
         {/* Header */}
-        <div className="p-5 px-6 border-b border-[#D8C9BC] flex items-center justify-between">
+        <div
+          className="p-5 px-6 border-b flex items-center justify-between"
+          style={{ borderColor: theme.border }}
+        >
           <div className="flex items-center gap-2.5">
             <span className="text-xl">🖼️</span>
             <div>
-              <h3 className="font-bold text-base tracking-tight text-[#211D1B]">
-                Wallpaper Library
+              <h3 className="font-bold text-base tracking-tight" style={{ color: theme.text }}>
+                Wallpaper & Theme Library
               </h3>
-              <p className="text-xs text-[#81766F]">
-                Select an authentic aesthetic artwork to feature as your workspace background.
+              <p className="text-xs" style={{ color: theme.textMuted }}>
+                Select an aesthetic artwork — UI elements, badges, bubbles, and waveforms automatically adapt to match its palette!
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-[#E8DED3] hover:bg-[#D8C9BC] flex items-center justify-center text-sm font-bold text-[#211D1B] transition-colors"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all hover:scale-105"
+            style={{
+              backgroundColor: theme.surfaceMuted,
+              color: theme.text,
+            }}
           >
             ✕
           </button>
         </div>
 
-        {/* Wallpaper Grid */}
+        {/* Wallpaper & Theme Grid */}
         <div className="p-6 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {WALLPAPER_LIST.map((wp) => {
-            const isSelected = activeWallpaper === wp.filename;
+          {Object.values(THEME_REGISTRY).map((t) => {
+            const isSelected = activeWallpaper === t.wallpaperUrl;
             return (
               <div
-                key={wp.id}
+                key={t.id}
                 onClick={() => {
-                  onSelect(wp.filename);
+                  setThemeByWallpaper(t.id);
                 }}
                 className={`group relative rounded-2xl overflow-hidden border-2 cursor-pointer transition-all hover:scale-102 hover:shadow-lg ${
-                  isSelected ? 'border-[#C51F26] ring-2 ring-[#C51F26]/30' : 'border-[#D8C9BC] hover:border-neutral-400'
+                  isSelected ? 'ring-2' : 'hover:opacity-90'
                 }`}
+                style={{
+                  borderColor: isSelected ? t.primary : theme.border,
+                  boxShadow: isSelected ? `0 0 16px ${t.primary}40` : undefined,
+                }}
               >
+                {/* Artwork Thumbnail */}
                 <div
                   className="h-28 w-full bg-cover bg-center transition-transform duration-300 group-hover:scale-105"
-                  style={{ backgroundImage: `url('${wp.filename}')` }}
+                  style={{ backgroundImage: `url('${t.wallpaperUrl}')` }}
                 />
-                <div className="p-2.5 bg-[#FFF9F2] flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-[#211D1B] truncate">{wp.name}</span>
-                  {isSelected && (
-                    <span className="w-4 h-4 rounded-full bg-[#C51F26] text-white flex items-center justify-center text-[9px] font-black flex-shrink-0">
-                      ✓
+
+                {/* Theme Palette Bar & Title */}
+                <div
+                  className="p-3 flex flex-col gap-1.5 transition-colors"
+                  style={{
+                    backgroundColor: t.surfaceSolid,
+                    color: t.text,
+                    borderTop: `1px solid ${t.border}`,
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold truncate pr-1" style={{ color: t.text }}>
+                      {t.name}
                     </span>
-                  )}
+                    {isSelected && (
+                      <span
+                        className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black flex-shrink-0"
+                        style={{ backgroundColor: t.primary, color: t.outgoingText }}
+                      >
+                        ✓
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Palette Dots */}
+                  <div className="flex items-center gap-1.5 pt-0.5">
+                    <span
+                      className="w-3 h-3 rounded-full border border-black/10 shadow-2xs"
+                      style={{ backgroundColor: t.primary }}
+                      title="Primary Accent"
+                    />
+                    <span
+                      className="w-3 h-3 rounded-full border border-black/10 shadow-2xs"
+                      style={{ backgroundColor: t.background }}
+                      title="Background"
+                    />
+                    <span
+                      className="w-3 h-3 rounded-full border border-black/10 shadow-2xs"
+                      style={{ backgroundColor: t.outgoingBg }}
+                      title="Bubble Accent"
+                    />
+                    <span
+                      className="w-3 h-3 rounded-full border border-black/10 shadow-2xs"
+                      style={{ backgroundColor: t.systemBg }}
+                      title="System Badge"
+                    />
+                    <span className="text-[9px] font-semibold opacity-70 ml-auto">
+                      {t.isDark ? 'Dark' : 'Light'}
+                    </span>
+                  </div>
                 </div>
               </div>
             );
@@ -131,12 +149,29 @@ export default function WallpaperModal({
         </div>
 
         {/* Footer */}
-        <div className="p-4 px-6 border-t border-[#D8C9BC] bg-[#FFF9F2] flex justify-end">
+        <div
+          className="p-4 px-6 border-t flex justify-between items-center"
+          style={{
+            borderColor: theme.border,
+            backgroundColor: theme.surfaceSolid,
+          }}
+        >
+          <div className="flex items-center gap-2 text-xs" style={{ color: theme.textMuted }}>
+            <span>Active:</span>
+            <span className="font-bold" style={{ color: theme.primary }}>
+              {theme.name}
+            </span>
+          </div>
+
           <button
             onClick={onClose}
-            className="bg-[#C51F26] hover:bg-[#A8171D] text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-sm transition-all"
+            className="text-xs font-bold px-5 py-2.5 rounded-xl shadow-sm transition-all hover:scale-102"
+            style={{
+              backgroundColor: theme.primary,
+              color: theme.outgoingText,
+            }}
           >
-            Done
+            Apply & Close
           </button>
         </div>
       </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTheme } from '@/lib/ThemeContext';
 
 interface LeftNavigationProps {
   activeTab?: string;
@@ -17,20 +18,30 @@ export default function LeftNavigation({
   onOpenMatch,
   onOpenWallpapers,
 }: LeftNavigationProps) {
+  const { theme } = useTheme();
+
   return (
     <aside className="w-16 lg:w-[220px] flex-shrink-0 flex flex-col justify-between select-none relative z-10 bg-transparent h-full transition-all duration-200">
-      {/* ── TOP: FLOATING DARK CARD (width: 72px / 220px, bg: #171616, text: #F7F1EB, p: 20px 14px, rounded-r-[20px]) ── */}
-      <div className="flex flex-col p-3 lg:p-[20px_14px] bg-[#171616] text-[#F7F1EB] rounded-2xl rounded-l-none border-r border-b border-neutral-800/80 shadow-2xl">
+      {/* ── TOP: FLOATING DARK CARD (width: 72px / 220px, rounded-r-[20px]) ── */}
+      <div
+        className="flex flex-col p-3 lg:p-[20px_14px] rounded-2xl rounded-l-none border-r border-b shadow-2xl transition-colors duration-300"
+        style={{
+          backgroundColor: theme.sidebar,
+          color: theme.sidebarText,
+          borderColor: theme.border,
+        }}
+      >
         {/* Navigation Menu Links */}
         <nav className="flex flex-col gap-2">
           {/* HOME */}
           <button
             onClick={() => onSelectTab?.('home')}
-            className={`w-full h-[44px] flex items-center justify-center lg:justify-start gap-3.5 px-3 lg:px-3.5 rounded-[10px] font-bold text-xs tracking-wider transition-all text-left ${
-              activeTab === 'home'
-                ? 'bg-[#C51F26] text-white shadow-md'
-                : 'text-neutral-400 hover:text-white hover:bg-neutral-800/60'
-            }`}
+            className="w-full h-[44px] flex items-center justify-center lg:justify-start gap-3.5 px-3 lg:px-3.5 rounded-[10px] font-bold text-xs tracking-wider transition-all text-left"
+            style={{
+              backgroundColor: activeTab === 'home' ? theme.primary : 'transparent',
+              color: activeTab === 'home' ? theme.outgoingText : theme.sidebarText,
+              opacity: activeTab === 'home' ? 1 : 0.75,
+            }}
             title="Home"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
@@ -46,11 +57,12 @@ export default function LeftNavigation({
               onSelectTab?.('stranger_chat');
               onOpenMatch?.();
             }}
-            className={`w-full h-[44px] flex items-center justify-center lg:justify-start gap-3.5 px-3 lg:px-3.5 rounded-[10px] font-bold text-xs tracking-wider transition-all text-left ${
-              activeTab === 'stranger_chat'
-                ? 'bg-[#C51F26] text-white shadow-md'
-                : 'text-neutral-400 hover:text-white hover:bg-neutral-800/60'
-            }`}
+            className="w-full h-[44px] flex items-center justify-center lg:justify-start gap-3.5 px-3 lg:px-3.5 rounded-[10px] font-bold text-xs tracking-wider transition-all text-left shadow-sm"
+            style={{
+              backgroundColor: activeTab === 'stranger_chat' ? theme.primary : 'transparent',
+              color: activeTab === 'stranger_chat' ? theme.outgoingText : theme.sidebarText,
+              opacity: activeTab === 'stranger_chat' ? 1 : 0.75,
+            }}
             title="Stranger Chat"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
@@ -65,11 +77,12 @@ export default function LeftNavigation({
           {/* ROOMS */}
           <button
             onClick={() => onOpenRooms?.()}
-            className={`w-full h-[44px] flex items-center justify-center lg:justify-start gap-3.5 px-3 lg:px-3.5 rounded-[10px] font-bold text-xs tracking-wider transition-all text-left ${
-              activeTab === 'rooms'
-                ? 'bg-[#C51F26] text-white shadow-md'
-                : 'text-neutral-400 hover:text-white hover:bg-neutral-800/60'
-            }`}
+            className="w-full h-[44px] flex items-center justify-center lg:justify-start gap-3.5 px-3 lg:px-3.5 rounded-[10px] font-bold text-xs tracking-wider transition-all text-left"
+            style={{
+              backgroundColor: activeTab === 'rooms' ? theme.primary : 'transparent',
+              color: activeTab === 'rooms' ? theme.outgoingText : theme.sidebarText,
+              opacity: activeTab === 'rooms' ? 1 : 0.75,
+            }}
             title="Rooms"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
@@ -84,11 +97,12 @@ export default function LeftNavigation({
           {/* VOICE ROOMS */}
           <button
             onClick={() => onSelectTab?.('voice_rooms')}
-            className={`w-full h-[44px] flex items-center justify-center lg:justify-start gap-3.5 px-3 lg:px-3.5 rounded-[10px] font-bold text-xs tracking-wider transition-all text-left ${
-              activeTab === 'voice_rooms'
-                ? 'bg-[#C51F26] text-white shadow-md'
-                : 'text-neutral-400 hover:text-white hover:bg-neutral-800/60'
-            }`}
+            className="w-full h-[44px] flex items-center justify-center lg:justify-start gap-3.5 px-3 lg:px-3.5 rounded-[10px] font-bold text-xs tracking-wider transition-all text-left"
+            style={{
+              backgroundColor: activeTab === 'voice_rooms' ? theme.primary : 'transparent',
+              color: activeTab === 'voice_rooms' ? theme.outgoingText : theme.sidebarText,
+              opacity: activeTab === 'voice_rooms' ? 1 : 0.75,
+            }}
             title="Voice Rooms"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
@@ -105,12 +119,13 @@ export default function LeftNavigation({
               onSelectTab?.('library');
               onOpenWallpapers?.();
             }}
-            className={`w-full h-[44px] flex items-center justify-center lg:justify-start gap-3.5 px-3 lg:px-3.5 rounded-[10px] font-bold text-xs tracking-wider transition-all text-left ${
-              activeTab === 'library'
-                ? 'bg-[#C51F26] text-white shadow-md'
-                : 'text-neutral-400 hover:text-white hover:bg-neutral-800/60'
-            }`}
-            title="Library"
+            className="w-full h-[44px] flex items-center justify-center lg:justify-start gap-3.5 px-3 lg:px-3.5 rounded-[10px] font-bold text-xs tracking-wider transition-all text-left"
+            style={{
+              backgroundColor: activeTab === 'library' ? theme.primary : 'transparent',
+              color: activeTab === 'library' ? theme.outgoingText : theme.sidebarText,
+              opacity: activeTab === 'library' ? 1 : 0.75,
+            }}
+            title="Wallpaper & Theme Library"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
               <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
