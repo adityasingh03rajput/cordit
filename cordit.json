@@ -1,7 +1,7 @@
 {
   "project": {
     "name": "Cordit",
-    "version": "1.0.0-beta.5",
+    "version": "1.0.0-alpha.5",
     "tagline": "Public stranger chat + voice with live observer mode, music sharing, and dynamic wallpaper glassmorphism",
     "status": "Alpha / Hardened Developer Sandbox",
     "active_branch": "feature/public-stranger-chat",
@@ -13,7 +13,8 @@
       "ci_workflow": ".github/workflows/security-ci.yml",
       "ci_badge": "https://github.com/adityasingh03rajput/cordit/actions/workflows/security-ci.yml/badge.svg",
       "ci_runs_url": "https://github.com/adityasingh03rajput/cordit/actions/workflows/security-ci.yml",
-      "last_verified_commit": "1e94ef2"
+      "last_verified_commit": "77cb6acd1181d8382a7a374fd79592281cef10f3",
+      "ci_deploy_gate_policy": "A red or failing status on .github/workflows/security-ci.yml on branch main immediately halts all container build and deployment pipelines. No binary or Docker container is built or promoted until all checks are green."
     }
   },
   "production_launch_gate_criteria": {
@@ -39,7 +40,7 @@
           "command": "npm run test:security",
           "test_file": "backend/test-security-gates.ts (Test 1)",
           "ci_pipeline": ".github/workflows/security-ci.yml",
-          "last_verified_commit": "1e94ef2",
+          "last_verified_commit": "77cb6acd1181d8382a7a374fd79592281cef10f3",
           "result": "PASSED (binary upload rejected with 403)"
         }
       },
@@ -54,7 +55,7 @@
           "command": "npm run test:security",
           "test_file": "backend/test-security-gates.ts (Test 2)",
           "ci_pipeline": ".github/workflows/security-ci.yml",
-          "last_verified_commit": "1e94ef2",
+          "last_verified_commit": "77cb6acd1181d8382a7a374fd79592281cef10f3",
           "result": "PASSED (unconfirmed age rejected; ageConfirmed=true accepted)"
         }
       },
@@ -69,7 +70,7 @@
           "command": "npm run test:security",
           "test_file": "backend/test-security-gates.ts (Test 3)",
           "ci_pipeline": ".github/workflows/security-ci.yml",
-          "last_verified_commit": "1e94ef2",
+          "last_verified_commit": "77cb6acd1181d8382a7a374fd79592281cef10f3",
           "result": "PASSED (rapid second suggestion blocked with accurate cooldown timer)"
         }
       },
@@ -96,7 +97,7 @@
         "interim_mitigation": "Single-node dev process. Concurrency capped at 50 simultaneous matches in local testbed.",
         "graduation_roadmap": {
           "target_sprint": "Sprint 2",
-          "exit_criteria": "Redis 7.x Streams deployment with automated chaos test script simulating 100 concurrent matches with random worker termination."
+          "exit_criteria": "Redis 7.x Streams deployment with automated chaos test script asserting zero lost matches (100% matched or cleanly re-queued), zero duplicate rooms, and DLQ depth <= 3 under 100 concurrent matching attempts with 20% random worker SIGKILL injection."
         },
         "verification": {
           "method": "Planned Redis Cluster Chaos Test",
@@ -111,6 +112,7 @@
       "reclaim_window_and_dead_letter_queue": {
         "min_idle_time": "12000 ms (12 seconds) tuned to P99.9 mobile network latency and connection jitter.",
         "bounded_retries": "Consumer group inspects delivery_count metadata. If delivery_count > 3, the message is automatically routed to a Dead Letter Queue (stream:matching:dlq) and acknowledged with XACK to prevent poison-pill infinite reclaim loops.",
+        "dlq_remediation_and_user_recovery": "When an item enters the DLQ, an automated worker unlocks both user state locks (DEL user:state:uA, DEL user:state:uB) and emits a socket event (matching:timeout_retry) to gracefully re-enqueue both users into the pool with fresh queue timestamps, preventing stranded clients.",
         "dlq_monitoring_and_alerting": "Prometheus metric cordit_matching_dlq_depth scraped every 15s. Alertmanager triggers a critical notification to Discord/Slack if DLQ depth > 0 for > 5 minutes."
       },
       "idempotency_and_double_match_prevention": [
@@ -127,7 +129,7 @@
         "RAM Zeroization: Unreported chunks and K_room are wiped from RAM every 30 seconds via crypto.randomFillSync.",
         "Audit Trail in Court: Only authenticated Compliance Officers with KMS kms:Decrypt IAM credentials can unwrap K_room."
       ],
-      "kms_outage_fallback": "If AWS/GCP KMS experiences an outage during forensic decryption, Tier-1 automated containment remains 100% active. The raw encrypted audio buffer and wrapped key payload are safely committed to cold storage, and the incident is marked with a deferred decryption flag (DEFERRED_DECRYPT_KMS_OUTAGE) to be processed upon KMS recovery.",
+      "kms_outage_fallback": "If AWS/GCP KMS experiences an outage during forensic decryption, Tier-1 automated containment remains 100% active. The raw encrypted audio buffer and wrapped key payload are safely committed to cold storage with a deferred decryption flag (DEFERRED_DECRYPT_KMS_OUTAGE). A scheduled worker cron job scans for DEFERRED_DECRYPT_KMS_OUTAGE records every 15 minutes, verifies KMS health check passes, unwraps keys, triggers Whisper transcription, and clears the deferred status.",
       "decoupled_incident_response_slas": {
         "tier_1_immediate_containment": {
           "severity": "SEV-1 & SEV-2 Incident Response Trigger",
