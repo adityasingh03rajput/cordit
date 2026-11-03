@@ -14,7 +14,7 @@
       "ci_workflow": ".github/workflows/security-ci.yml",
       "ci_badge": "https://github.com/adityasingh03rajput/cordit/actions/workflows/security-ci.yml/badge.svg",
       "ci_runs_url": "https://github.com/adityasingh03rajput/cordit/actions/workflows/security-ci.yml",
-      "last_verified_commit": "b63e8dad30544e03328026a1f7ca39bfcaa826ba"
+      "last_verified_commit": "d7e76f5f3c29379ed8edb1f8614ea17ea8a4edfd"
     }
   },
   "production_launch_gate_criteria": {
@@ -41,7 +41,7 @@
           "command": "npm run test:security",
           "test_file": "backend/test-security-gates.ts (Test 1)",
           "ci_pipeline": ".github/workflows/security-ci.yml",
-          "last_verified_commit": "b63e8dad30544e03328026a1f7ca39bfcaa826ba",
+          "last_verified_commit": "d7e76f5f3c29379ed8edb1f8614ea17ea8a4edfd",
           "result": "PASSED (binary upload rejected with 403)"
         }
       },
@@ -56,7 +56,7 @@
           "command": "npm run test:security",
           "test_file": "backend/test-security-gates.ts (Test 2)",
           "ci_pipeline": ".github/workflows/security-ci.yml",
-          "last_verified_commit": "b63e8dad30544e03328026a1f7ca39bfcaa826ba",
+          "last_verified_commit": "d7e76f5f3c29379ed8edb1f8614ea17ea8a4edfd",
           "result": "PASSED (unconfirmed age rejected; ageConfirmed=true accepted)"
         }
       },
@@ -71,7 +71,7 @@
           "command": "npm run test:security",
           "test_file": "backend/test-security-gates.ts (Test 3)",
           "ci_pipeline": ".github/workflows/security-ci.yml",
-          "last_verified_commit": "b63e8dad30544e03328026a1f7ca39bfcaa826ba",
+          "last_verified_commit": "d7e76f5f3c29379ed8edb1f8614ea17ea8a4edfd",
           "result": "PASSED (rapid second suggestion blocked with accurate cooldown timer)"
         }
       },
