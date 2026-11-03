@@ -46,6 +46,11 @@ router.get('/:id/file', async (req: Request, res: Response) => {
 // POST /upload/request - Get an upload URL
 router.post('/request', verifyToken, validator(requestUpload), async (req: Request, res: Response) => {
   try {
+    // GATE-01 Interim Mitigation: Restrict binary media uploads until automated perceptual hashing clears
+    if (process.env.MEDIA_UPLOADS_ENABLED !== 'true' && req.user?.role !== 'admin') {
+      res.status(403).json({ error: 'Media uploads in stranger chat are temporarily disabled for safety pending automated perceptual hash screening (GATE-01).' });
+      return;
+    }
     const { fileName, mimeType, fileSize } = req.body;
     const username = req.user?.username;
 

@@ -264,13 +264,12 @@ export default function RegisterPage() {
                 type="text"
                 value={inviteCode}
                 onChange={(e) => handleCodeChange(e.target.value)}
-                className={`w-full h-11 px-4 rounded-xl bg-[#1b1031]/80 hover:bg-[#23153e]/80 focus:bg-[#23153e] border ${
-                  codeValid === true
+                className={`w-full h-11 px-4 rounded-xl bg-[#1b1031]/80 hover:bg-[#23153e]/80 focus:bg-[#23153e] border ${codeValid === true
                     ? 'border-emerald-500/60 focus:border-emerald-400'
                     : codeValid === false
-                    ? 'border-rose-500/60 focus:border-rose-400'
-                    : 'border-purple-500/25 focus:border-purple-400'
-                } focus:ring-2 focus:ring-purple-500/30 text-white placeholder-purple-300/30 text-sm tracking-wider uppercase outline-none transition-all duration-200`}
+                      ? 'border-rose-500/60 focus:border-rose-400'
+                      : 'border-purple-500/25 focus:border-purple-400'
+                  } focus:ring-2 focus:ring-purple-500/30 text-white placeholder-purple-300/30 text-sm tracking-wider uppercase outline-none transition-all duration-200`}
                 placeholder="Optional 8-char code"
                 maxLength={8}
               />

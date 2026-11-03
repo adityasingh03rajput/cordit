@@ -9,7 +9,8 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
-    "create-admin": "tsx src/utils/createAdmin.ts"
+    "create-admin": "tsx src/utils/createAdmin.ts",
+    "test:security": "tsx test-security-gates.ts"
   },
   "keywords": [
     "chat",
