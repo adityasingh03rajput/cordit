@@ -4,7 +4,7 @@
     "name": "Cordit",
     "version": "1.0.0",
     "tagline": "Public stranger chat + voice with live observer mode, music sharing, and dynamic wallpaper glassmorphism",
-    "description": "Cordit is a self-hosted, lightweight real-time communication platform combining the spontaneous discovery of Omegle/Chatroulette with Discord-like persistent voice channels and a unique spectator observer mode. Features include numeric anonymous Public IDs (#7368), bidirectional gender-compatible matching, real-time spectator suggestions, browser-to-browser music sharing, and an adaptive wallpaper-driven frosted glassmorphism design system.",
+    "description": "Cordit is a next-generation real-time social communication platform. It bridges the spontaneous discovery of Omegle/Chatroulette with the persistent community feeling of Discord, introducing a spectator arena model where stranger conversations are publicly viewable and interactable via spectator suggestions.",
     "license": "MIT",
     "repository": {
       "type": "git",
@@ -15,169 +15,253 @@
       }
     }
   },
-  "core_philosophy": {
-    "anonymity_with_accountability": "Users are assigned clean numeric 4-to-6 digit Public IDs (e.g., #7368) to protect identity while retaining reputation, moderation trails, and ban capabilities.",
-    "transparent_public_conversations": "All stranger chat rooms are 100% public by design. Spectators can drop in as read-only observers, watch conversations unfold in real time, and submit helpful suggestions without breaking conversation flow.",
-    "immersive_visual_harmony": "UI surfaces are constructed with frosted translucent glassmorphism (backdrop-blur-md/xl) that adapt colors, chat bubbles, waveform visualizers, and glowing accents to match the active desktop wallpaper."
+  "concepts": {
+    "theatre_observer_model": {
+      "name": "The Public Conversation as an Arena",
+      "summary": "Stranger chat is transformed from a private silo into a shared social stage.",
+      "description": "Traditional stranger chat platforms (like Omegle) hide interactions in isolated 1-on-1 silos. Cordit turns conversations into an engaging live arena: strangers converse in the spotlight while third-party users can watch live as read-only observers. This eliminates isolation, discourages toxic behavior through visibility, and creates an entertainment format similar to live-streamed casual debates."
+    },
+    "crowdsourced_icebreakers": {
+      "name": "Observer Suggestion Engine",
+      "summary": "Spectators can actively enrich conversations without hijacking them.",
+      "description": "When strangers run out of things to say, awkward silences usually kill the conversation. Cordit solves this by allowing observers to submit icebreakers, trivia, questions, and discussion prompts into a dedicated side widget. Participants can view, accept, or ignore suggestions at their discretion."
+    },
+    "numeric_public_identities": {
+      "name": "Anonymous Yet Accountable Identity",
+      "summary": "Clean 4-6 digit numeric handles (#7368) instead of email addresses or expose-prone handles.",
+      "description": "To protect privacy and eliminate social friction, users receive a randomly generated numeric public ID (e.g. #7368). The numeric ID decouples the user from their database identity, prevents doxxing, and eliminates personal data exposure, while still allowing persistent blocklists, moderation tracking, and report logging."
+    },
+    "living_canvas_design_system": {
+      "name": "Wallpaper-Driven Reactive UI",
+      "summary": "The desktop artwork is not merely a background; it dynamically controls the UI theme.",
+      "description": "Rather than a static dark/light toggle, Cordit's theme engine inspects the selected wallpaper (cherry blossom, cyberpunk samurai, snowy aurora, sumi-e sunset) and dynamically adjusts UI surfaces, transparency levels, message bubble accents, glowing borders, active tab highlights, and audio waveform hues to blend with the wallpaper."
+    },
+    "ultra_clear_frosted_glassmorphism": {
+      "name": "Depth Through Translucency",
+      "summary": "High-transparency acrylic glass layers (backdrop-blur-md/xl) that never obscure the art.",
+      "description": "All panels, headers, message containers, and sidebars utilize ultra-clear frosted glass styling (12% to 35% opacity) with subtle reflective borders (border-white/15 or border-purple-500/30) and diffuse shadows, giving the impression of floating optical acrylic sheets over a luminous canvas."
+    }
   },
-  "system_architecture": {
-    "topology": "Micro-monolith with separated frontend and backend services backed by MongoDB and a dedicated LiveKit WebRTC Selective Forwarding Unit (SFU).",
-    "services": [
+  "ui_elements": {
+    "top_header": {
+      "file": "frontend/components/TopHeader.tsx",
+      "description": "Global navigation and system status header anchored to the top of the viewport.",
+      "elements": [
+        {
+          "element": "Brand Squircle & Logo",
+          "details": "A crimson/accent rounded squircle with 'C' glyph and bold 'Cordit' typography, paired with a glowing green/red LIVE status beacon."
+        },
+        {
+          "element": "Theme / Wallpaper Switcher Pill",
+          "details": "Translucent frosted pill with palette icon. Clicking opens the Wallpaper Selector Modal."
+        },
+        {
+          "element": "Notification Bell Pill",
+          "details": "Displays real-time notifications with an unread badge indicator."
+        },
+        {
+          "element": "User Identity Capsule",
+          "details": "Displays user avatar icon, numeric Public ID badge (e.g. #7368), and role indicator (e.g. Admin/User) with a dropdown menu for profile and logout."
+        }
+      ]
+    },
+    "left_navigation_rail": {
+      "file": "frontend/components/LeftNavigation.tsx",
+      "description": "Slim lateral navigation dock providing access to primary views.",
+      "elements": [
+        { "item": "Home", "icon": "Home", "route": "/", "description": "Global lobby and featured room overview" },
+        { "item": "Stranger Chat", "icon": "Users", "route": "/#stranger", "description": "Direct entry to 1-on-1 stranger matchmaking with observer mode" },
+        { "item": "Rooms", "icon": "Hash", "route": "/#rooms", "description": "Persistent public discussion channels" },
+        { "item": "Voice Rooms", "icon": "Mic", "route": "/#voice", "description": "Dedicated WebRTC voice channels" },
+        { "item": "Library", "icon": "Bookmark", "route": "/#library", "description": "Saved media, notes, and session archives" }
+      ]
+    },
+    "central_chat_stage": {
+      "file": "frontend/components/MasterFeedTile.tsx",
+      "description": "Central conversation stage where stranger dialogue and spectator interactions take place.",
+      "elements": [
+        {
+          "element": "Room Header Toolbar",
+          "details": "Displays channel name (# Stranger Chat), connected user pair pills (#7368 & #6202), vibrant 'PUBLIC ROOM' pill, observer counter badge ('4 Observers'), 'Report' flag trigger, and 'Leave' CTA."
+        },
+        {
+          "element": "Public Disclosure Banner",
+          "details": "Subtle top banner informing participants that the conversation is broadcasted live to spectators to encourage polite conduct."
+        },
+        {
+          "element": "Chat Timeline Container",
+          "details": "Virtual scrolling feed with 'Today' date divider, floating timestamps, and smooth auto-scroll to latest message."
+        },
+        {
+          "element": "Message Bubbles",
+          "details": "Two distinct styles: left-aligned stranger messages (dark translucent card with sender avatar squircle and numeric ID) and right-aligned user messages (accent-colored rounded capsule with YOU badge)."
+        },
+        {
+          "element": "System Announcement Capsules",
+          "details": "Centered frosted capsules announcing events such as 'user3 joined the room as observer' or 'Stranger has disconnected'."
+        },
+        {
+          "element": "Bottom Docked Input Bar",
+          "details": "Frosted input container with paperclip attachment button, emoji picker trigger, auto-resizing text field, and vibrant send button with paper airplane icon."
+        }
+      ]
+    },
+    "right_sidebar_widgets": {
+      "file": "frontend/components/RightSidebar.tsx",
+      "description": "Right auxiliary dock containing interactive audio and community widgets.",
+      "elements": [
+        {
+          "widget": "Voice Chat Box",
+          "file": "frontend/components/VoiceChat.tsx",
+          "details": "Dynamic multi-bar audio waveform visualizer that reacts to speaking activity, participant list, per-user volume sliders, mute/deafen buttons, and a radiant 'Join Voice' button."
+        },
+        {
+          "widget": "Spectator Suggestions Box",
+          "file": "frontend/components/ObserverSuggestionsPanel.tsx",
+          "details": "Collapsible card listing topics and icebreakers submitted by observers, showing spectator IDs, timestamps, and dismiss/accept actions, plus a '+ Drop a Suggestion' action for spectators."
+        }
+      ]
+    },
+    "modals_and_overlays": {
+      "elements": [
+        {
+          "modal": "Matching Modal",
+          "file": "frontend/components/MatchingModal.tsx",
+          "details": "Radar search animation displaying queue status, mutual gender preference toggles (My Gender vs Looking For), and a cancel queue button."
+        },
+        {
+          "modal": "Wallpaper Selector Modal",
+          "file": "frontend/components/WallpaperModal.tsx",
+          "details": "Interactive grid displaying high-res thumbnails for all 8 curated wallpapers with instant live preview and theme switching."
+        },
+        {
+          "modal": "Report Modal",
+          "file": "frontend/components/ReportModal.tsx",
+          "details": "Safety reporting window capturing category (harassment, spam, inappropriate conduct), custom notes, and a snapshot of recent messages."
+        },
+        {
+          "modal": "Confirm Exit Dialog",
+          "file": "frontend/components/ConfirmDialog.tsx",
+          "details": "Confirmation modal before abandoning an active stranger match to avoid accidental disconnects."
+        }
+      ]
+    },
+    "auth_screens": {
+      "elements": [
+        {
+          "page": "Login Screen",
+          "file": "frontend/app/login/page.tsx",
+          "details": "Violet moonlit mountain wallpaper background with a centered glowing glassmorphic card, aperture brand icon, username/publicId input, password input with eye visibility toggle, floating red error capsule, and violet gradient login button."
+        },
+        {
+          "page": "Register Screen",
+          "file": "frontend/app/register/page.tsx",
+          "details": "Matching violet glassmorphic card with gender dropdowns, password input with show/hide toggle, optional invite code input with live validation spinner, and account generation button."
+        }
+      ]
+    }
+  },
+  "features_matrix": {
+    "communication_and_matching": [
       {
-        "name": "Frontend Application",
-        "role": "Single Page Application with App Router, server-rendered landing, reactive client components, and audio/socket controllers.",
-        "technology": "Next.js 16 (Turbopack), React 19, TypeScript, Tailwind CSS, Lucide React, Zustand",
-        "default_port": 3001,
-        "entrypoint": "frontend/app/page.tsx"
+        "id": "MATCH-01",
+        "name": "Mutual-Preference Matching Algorithm",
+        "description": "Matches users in real time where user A's gender satisfies user B's preference, and user B's gender satisfies user A's preference."
       },
       {
-        "name": "Backend API & Real-time Server",
-        "role": "REST API for authentication, user profiles, room management, upload pipelines, and Socket.io server for matching, messaging, and suggestions.",
-        "technology": "Node.js 20+, Express 4, TypeScript (tsx), Mongoose, Socket.io, LiveKit Server SDK, Winston, Zod",
-        "default_port": 3000,
-        "entrypoint": "backend/src/app.ts"
+        "id": "MATCH-02",
+        "name": "Direct Public ID Search & Match",
+        "description": "Enables two users who already know each other's numeric Public IDs (#7368) to bypass random queue and initiate a direct match."
       },
       {
-        "name": "Voice & Media SFU",
-        "role": "Selective Forwarding Unit managing low-latency WebRTC audio channels, participant tracks, and speaking volume indicators.",
-        "technology": "LiveKit Server (Go-based binary)",
-        "default_port": 7880,
-        "entrypoint": "bin/livekit/livekit-server.exe --dev"
+        "id": "MATCH-03",
+        "name": "Real-time Queue Pooling",
+        "description": "In-memory socket matching pool handling disconnects, cancellations, and stale connection recovery."
+      }
+    ],
+    "social_and_observer_features": [
+      {
+        "id": "OBS-01",
+        "name": "Zero-Approval Live Spectating",
+        "description": "Users can browse public stranger rooms and join as read-only spectators without interrupting participants."
       },
       {
-        "name": "Primary Database",
-        "role": "Document store for users, public IDs, rooms, chat messages, spectator suggestions, moderation reports, blocks, and invite tokens.",
-        "technology": "MongoDB (Local or MongoDB Memory Server / Docker)",
-        "default_port": 27017,
-        "connection_uri": "mongodb://127.0.0.1:27017/cordit"
+        "id": "OBS-02",
+        "name": "Live Observer Count Broadcast",
+        "description": "WebSocket broadcasts update the participant UI in real-time as observers enter or exit the room."
+      },
+      {
+        "id": "OBS-03",
+        "name": "Crowdsourced Suggestions Feed",
+        "description": "Spectators can submit conversation topics; participants can review or dismiss them live."
+      },
+      {
+        "id": "OBS-04",
+        "name": "Server-side Spectator Permission Enforcement",
+        "description": "Backend Socket.io middleware validates that only active room participants can emit chat messages; observer attempts are rejected."
+      }
+    ],
+    "voice_and_media": [
+      {
+        "id": "VOICE-01",
+        "name": "LiveKit WebRTC Voice Mesh",
+        "description": "Ultra-low-latency voice transmission using LiveKit SFU server."
+      },
+      {
+        "id": "VOICE-02",
+        "name": "Dynamic Audio Waveform Visualizer",
+        "description": "Animated visual spectrum meters synchronized to speaking loudness."
+      },
+      {
+        "id": "VOICE-03",
+        "name": "Browser Tab Music Sharing",
+        "description": "Direct audio track capture from any open browser tab (YouTube/Spotify) streamed directly into the voice room."
+      },
+      {
+        "id": "MEDIA-01",
+        "name": "Local High-Performance Media Storage",
+        "description": "File upload pipeline storing images and media permanently on disk with HTTP caching headers."
+      }
+    ],
+    "theming_and_aesthetics": [
+      {
+        "id": "THEME-01",
+        "name": "Wallpaper-Driven Dynamic Theming",
+        "description": "Contextual UI adaptation that reads wallpaper metadata and updates CSS tokens for primary, accent, surface, bubbles, and waveforms."
+      },
+      {
+        "id": "THEME-02",
+        "name": "Curated 8-Artwork Gallery",
+        "description": "High-definition desktop wallpapers (Cherry Blossom, Crimson Wanderer, Anime Sunset, Samurai Moon, Aurora Valley, Starlit Valley, Crimson Mist, Headphones Red Moon)."
+      },
+      {
+        "id": "THEME-03",
+        "name": "Ultra-Clear Glassmorphism",
+        "description": "12% to 35% translucent acrylic styling with backdrop-blur-md/xl ensures background art is never obscured."
+      }
+    ],
+    "security_moderation_admin": [
+      {
+        "id": "SEC-01",
+        "name": "Numeric Anonymous Public IDs",
+        "description": "Eliminates personally identifiable usernames/emails while preserving individual accountability."
+      },
+      {
+        "id": "SEC-02",
+        "name": "One-Click Permanent User Blocking",
+        "description": "Blocks target user from ever appearing in matching pools or sending direct requests."
+      },
+      {
+        "id": "SEC-03",
+        "name": "Context Snapshot Incident Reporting",
+        "description": "Attaches the last N messages of the active room to the report for objective admin review."
+      },
+      {
+        "id": "SEC-04",
+        "name": "Comprehensive /admin Dashboard",
+        "description": "Role-guarded control center for reviewing reports, suspending abusive accounts, generating invite codes, and monitoring platform metrics."
       }
     ]
-  },
-  "key_features": {
-    "stranger_chat_and_matchmaking": {
-      "summary": "Instant peer matching based on mutual gender preferences and numeric Public IDs.",
-      "capabilities": [
-        "Numeric Public IDs: 4-6 digit numeric handles (#7368) generated at registration.",
-        "Mutual Compatibility Filtering: Matches 'My Gender' (male, female, other) with 'Looking For' (male, female, any) bidirectionally.",
-        "Direct Public ID Connect: Enter a specific public ID to connect directly with an active user.",
-        "Queue Pool Management: Real-time pooling with timeout fallbacks and automatic reconnection handling."
-      ]
-    },
-    "public_conversations_and_observer_mode": {
-      "summary": "Any active conversation can be observed live by other community members.",
-      "capabilities": [
-        "Unauthenticated or Peer Spectating: Observers join rooms in read-only mode without requiring host approval.",
-        "Live Observer Count: Real-time badges notify active chatters how many spectators are watching.",
-        "Spectator Suggestions: Observers can submit conversation starters and icebreakers.",
-        "Participant Privacy Controls: Chat participants can toggle observer advice visibility on or off at will.",
-        "Strict Server-side Enforcement: Observers are prevented at the WebSocket handler level from sending direct chat messages."
-      ]
-    },
-    "voice_channels_and_spatial_audio": {
-      "summary": "Low-latency WebRTC voice communication powered by LiveKit SFU.",
-      "capabilities": [
-        "Live Voice Rooms: Embedded voice channels inside stranger chats or standalone public channels.",
-        "Dynamic Waveform Visualizer: Animated audio spectrum bars that sync with voice activity.",
-        "Per-User Volume Controls: Independent volume sliders for each participant in the call.",
-        "Mute & Deafen: Hardware and software mic toggle with local stream pausing."
-      ]
-    },
-    "browser_tab_music_sharing": {
-      "summary": "Desktop browser audio capture for shared listening sessions.",
-      "capabilities": [
-        "Zero-transcode Streaming: Leverages navigator.mediaDevices.getDisplayMedia({ audio: true }) to stream audio directly.",
-        "Universal Compatibility: Streams Spotify, YouTube, Soundcloud, or any open browser tab.",
-        "Synchronized Audio Track: Streams as an auxiliary audio track in the LiveKit room."
-      ]
-    },
-    "dynamic_wallpaper_glassmorphism_theming": {
-      "summary": "Contextual UI adaptation based on 8 curated desktop artworks.",
-      "curated_wallpapers": [
-        { "id": "cherry-blossom", "title": "Moonlit Cherry Blossom Mountain Retreat", "tone": "violet_night" },
-        { "id": "crimson-wanderer", "title": "Crimson Sumi-e Sunset Wanderer", "tone": "crimson_paper" },
-        { "id": "anime-sunset", "title": "Anime Sunset Serenity with Torii", "tone": "golden_amber" },
-        { "id": "samurai-moon", "title": "Samurai Under the Violet Moon", "tone": "neon_purple" },
-        { "id": "aurora-valley", "title": "Aurora Over the Snowy Valley", "tone": "emerald_cyan" },
-        { "id": "starlit-valley", "title": "Starlit Valley Beneath the Golden Tree", "tone": "deep_midnight" },
-        { "id": "crimson-mist", "title": "Crimson Mist Torii Landscape", "tone": "ruby_dark" },
-        { "id": "headphones-red-moon", "title": "Headphones Beneath the Red Moon", "tone": "minimal_black_red" }
-      ],
-      "aesthetic_features": [
-        "Ultra-Clear Frosted Glass: backdrop-blur-md/2xl with 12%-35% transparency allows background artwork to show through cleanly.",
-        "Color Token Adaptation: Accent borders, message bubbles, brand tags, and waveform hues automatically adjust when switching wallpapers.",
-        "Custom Auth Portal: Glowing violet glass card with interactive password visibility toggle, matching the moonlit cherry blossom landscape."
-      ]
-    },
-    "moderation_and_safety": {
-      "summary": "Multi-tier defense to keep public stranger chats civil and safe.",
-      "capabilities": [
-        "One-Click User Blocking: Blocks target user by Public ID, permanently eliminating future matches.",
-        "Incident Reporting: Generates an immutable snapshot containing recent messages, room ID, reporter, and suspect ID.",
-        "Admin Moderation Console: Dedicated /admin portal for inspecting reported chat contexts, suspending accounts, and executing permanent bans."
-      ]
-    }
-  },
-  "backend_specifications": {
-    "database_models": {
-      "User": {
-        "fields": ["_id", "username", "password", "publicId", "gender", "genderPreference", "status", "role", "blockedUsers", "avatar", "createdAt", "updatedAt"],
-        "indexes": ["publicId (unique)", "username (sparse, unique)"]
-      },
-      "Room": {
-        "fields": ["_id", "name", "type ('stranger' | 'public' | 'voice')", "participants", "observers", "isPublic", "createdAt", "updatedAt"]
-      },
-      "Message": {
-        "fields": ["_id", "room", "sender", "content", "type ('text' | 'media' | 'system')", "fileUrl", "createdAt"]
-      },
-      "Suggestion": {
-        "fields": ["_id", "room", "author", "content", "votes", "createdAt"]
-      },
-      "Report": {
-        "fields": ["_id", "reporter", "reportedUser", "room", "reason", "status ('pending' | 'resolved' | 'dismissed')", "contextSnapshot", "createdAt"]
-      },
-      "Block": {
-        "fields": ["_id", "blocker", "blocked", "createdAt"]
-      },
-      "InviteCode": {
-        "fields": ["_id", "code", "createdBy", "usedBy", "isUsed", "expiresAt", "createdAt"]
-      }
-    },
-    "rest_api_routes": {
-      "auth_and_user": [
-        { "method": "POST", "path": "/api/user/register", "desc": "Register account, assign gender preferences & generate publicId" },
-        { "method": "POST", "path": "/api/user/login", "desc": "Authenticate by username or publicId, issue JWT token" },
-        { "method": "GET", "path": "/api/user/me", "desc": "Fetch authenticated user profile and block list" },
-        { "method": "GET", "path": "/api/user/search/:publicId", "desc": "Lookup active user by numeric publicId" }
-      ],
-      "rooms_and_messages": [
-        { "method": "GET", "path": "/api/room", "desc": "List public rooms and active stranger sessions" },
-        { "method": "POST", "path": "/api/room/:id/token", "desc": "Generate LiveKit WebRTC access token for voice channel" },
-        { "method": "GET", "path": "/api/message/:roomId", "desc": "Retrieve historical messages for a room" }
-      ],
-      "moderation_and_admin": [
-        { "method": "POST", "path": "/api/moderation/block", "desc": "Block a user by publicId" },
-        { "method": "POST", "path": "/api/moderation/report", "desc": "File a report with incident snapshot" },
-        { "method": "GET", "path": "/api/moderation/reports", "desc": "Admin review queue of reported users" },
-        { "method": "PATCH", "path": "/api/moderation/users/:id/status", "desc": "Suspend or ban a user account" }
-      ]
-    },
-    "socket_events": {
-      "matchmaking": ["join_queue", "leave_queue", "match_found", "match_cancelled"],
-      "chat": ["join_room", "leave_room", "send_message", "receive_message", "typing_start", "typing_stop"],
-      "observer": ["join_as_observer", "observer_joined", "observer_left", "new_suggestion", "observer_count_update"]
-    }
-  },
-  "frontend_specifications": {
-    "directory_structure": {
-      "app/": "Next.js routes (/login, /register, /admin, /)",
-      "components/": "UI modules (MasterFeedTile, LeftNavigation, RightSidebar, VoiceChat, MatchingModal, WallpaperModal, etc.)",
-      "lib/": "State store (Zustand), API client (Axios), Socket hooks (useSocket), Theme registry (themeRegistry.ts, ThemeContext.tsx)",
-      "public/wallpapers/": "8 high-definition desktop wallpapers and artwork assets"
-    },
-    "state_management": {
-      "library": "Zustand",
-      "slices": ["user", "activeRoom", "messages", "observers", "suggestions", "voiceState", "activeTheme", "mediaUploads"]
-    }
   },
   "runtime_and_deployment": {
     "local_daemons": {
@@ -186,6 +270,9 @@
       "livekit": "livekit-server.exe --dev (http://localhost:7880)",
       "frontend": "npm run dev --port 3001 (http://localhost:3001)"
     },
-    "containerization": "Multi-container docker-compose.yml orchestrating Frontend, Backend, LiveKit, and MongoDB services."
+    "docker": {
+      "compose_file": "docker-compose.yml",
+      "services": ["frontend", "backend", "livekit", "mongo"]
+    }
   }
 }
