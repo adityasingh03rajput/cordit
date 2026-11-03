@@ -1,0 +1,45 @@
+name: Security Gates & Build CI
+
+on:
+  push:
+    branches: [ main, feature/public-stranger-chat ]
+  pull_request:
+    branches: [ main, feature/public-stranger-chat ]
+
+jobs:
+  verify-security-gates:
+    name: Verify Security Gates & Compile Pipelines
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: |
+            backend/package.json
+            frontend/package.json
+
+      - name: Install Backend Dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Run Security Gate Verification Suite
+        working-directory: backend
+        run: npm run test:security
+
+      - name: Compile Backend TypeScript
+        working-directory: backend
+        run: npm run build
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build Next.js Frontend
+        working-directory: frontend
+        run: npm run build

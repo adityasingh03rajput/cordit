@@ -1,19 +1,24 @@
 {
   "project": {
     "name": "Cordit",
-    "version": "1.0.0-beta.3",
+    "version": "1.0.0-beta.4",
     "tagline": "Public stranger chat + voice with live observer mode, music sharing, and dynamic wallpaper glassmorphism",
     "status": "Alpha / Hardened Developer Sandbox",
     "active_branch": "feature/public-stranger-chat",
-    "branch_scope_note": "The active branch feature/public-stranger-chat serves as the release hardening vehicle encompassing public chat, observer controls, security gates, and rate limiting.",
+    "branch_scope_note": "The active branch feature/public-stranger-chat serves as the release hardening vehicle encompassing public stranger matchmaking, observer governance, security gates, CI pipelines, and rate limiting.",
     "license": "MIT",
     "repository": {
       "type": "git",
-      "url": "https://github.com/adityasingh03rajput/cordit.git"
+      "url": "https://github.com/adityasingh03rajput/cordit.git",
+      "ci_workflow": ".github/workflows/security-ci.yml"
     }
   },
   "production_launch_gate_criteria": {
     "policy": "HARD BLOCKER — Public registration, external marketing, and un-gated DNS traffic are strictly restricted to staging/sandbox until 100% of the following critical safety and infrastructure gates pass automated verification.",
+    "gate_governance": {
+      "audit_cadence": "Bi-weekly sprint re-audit cadence.",
+      "graduation_criteria": "A gate only transitions from INTERIM_MITIGATION_ACTIVE or BLOCKED to PASSED when production code is merged, integration tests pass in .github/workflows/security-ci.yml, and formal sign-off is tagged in git."
+    },
     "gate_checklist": [
       {
         "id": "GATE-01",
@@ -22,9 +27,10 @@
         "status": "INTERIM_MITIGATION_ACTIVE",
         "interim_mitigation": "Binary media uploads in stranger chat are hard-locked on both frontend and backend (POST /upload/request returns 403 Forbidden). Non-admin stranger rooms are text and WebRTC audio only.",
         "verification": {
-          "method": "Automated Test Suite",
+          "method": "Automated CI Test Suite",
           "command": "npm run test:security",
           "test_file": "backend/test-security-gates.ts (Test 1)",
+          "ci_pipeline": ".github/workflows/security-ci.yml",
           "result": "PASSED (binary upload rejected with 403)"
         }
       },
@@ -35,9 +41,10 @@
         "status": "PASSED",
         "implementation": "frontend/app/register/page.tsx & backend/src/validators/user.ts",
         "verification": {
-          "method": "Automated Test Suite & Form Validation",
+          "method": "Automated CI Test Suite & Form Validation",
           "command": "npm run test:security",
           "test_file": "backend/test-security-gates.ts (Test 2)",
+          "ci_pipeline": ".github/workflows/security-ci.yml",
           "result": "PASSED (unconfirmed age rejected; ageConfirmed=true accepted)"
         }
       },
@@ -48,9 +55,10 @@
         "status": "PASSED",
         "implementation": "backend/src/utils/socket.ts (SUGGESTION_COOLDOWN_MS = 30000) & express-rate-limit",
         "verification": {
-          "method": "Automated Test Suite & Live Socket Assertion",
+          "method": "Automated CI Test Suite & Live Socket Assertion",
           "command": "npm run test:security",
           "test_file": "backend/test-security-gates.ts (Test 3)",
+          "ci_pipeline": ".github/workflows/security-ci.yml",
           "result": "PASSED (rapid second suggestion blocked with accurate cooldown timer)"
         }
       },
@@ -62,7 +70,7 @@
         "interim_mitigation": "Voice channels restricted to mutual direct ID calls. Public registration restricted via invite codes (INVITE_ONLY=true).",
         "verification": {
           "method": "Planned LiveKit Egress Worker Integration Test",
-          "target_sprint": "Sprint 3"
+          "ci_pipeline": ".github/workflows/security-ci.yml (Target: Sprint 3)"
         }
       },
       {
@@ -73,38 +81,49 @@
         "interim_mitigation": "Single-node dev process. Concurrency capped at 50 simultaneous matches in local testbed.",
         "verification": {
           "method": "Planned Redis Cluster Chaos Test",
-          "target_sprint": "Sprint 2"
+          "ci_pipeline": ".github/workflows/security-ci.yml (Target: Sprint 2)"
         }
       }
     ]
   },
-  "technical_deep_dive_and_open_questions": {
+  "technical_deep_dive_and_edge_cases": {
     "redis_streams_matching_and_idempotency": {
       "why_not_pub_sub": "Redis Pub/Sub is fire-and-forget. If a worker crashes mid-handshake, the match event is permanently dropped.",
-      "reclaim_window_tuning": "Tuned to min-idle-time = 12000 ms (12 seconds). This safely accommodates P99.9 mobile network latency and connection jitter while preventing false reclaims.",
+      "reclaim_window_and_dead_letter_queue": {
+        "min_idle_time": "12000 ms (12 seconds) tuned to P99.9 mobile network latency and connection jitter.",
+        "bounded_retries": "Consumer group inspects delivery_count metadata. If delivery_count > 3, the message is automatically routed to a Dead Letter Queue (stream:matching:dlq) and acknowledged with XACK to prevent poison-pill infinite reclaim loops."
+      },
       "idempotency_and_double_match_prevention": [
         "Deterministic Idempotency Key: lock:match:hash(min(uA,uB), max(uA,uB), epoch_slot_30s) acquired via SET ... NX EX 30.",
-        "Atomic User State Locks: Lua script validates SET user:state:uA 'in_room' NX EX 60 and SET user:state:uB 'in_room' NX EX 60.",
-        "Failure Handling: If either user lock fails (e.g., user already matched in another session), the claim is safely discarded via XACK with zero duplicate room creation."
+        "Same-Pair Rematch Policy: Intentional rematches between the identical pair within the 30-second epoch slot are rejected with a 30s cooldown message ('Please wait 30s before re-pairing with the same stranger') to prevent griefing and queue-bouncing.",
+        "Atomic User State Locks: Lua script validates SET user:state:uA 'in_room' NX EX 60 and SET user:state:uB 'in_room' NX EX 60. If either user is already active elsewhere, the claim is acknowledged via XACK and discarded."
       ]
     },
-    "voice_buffer_encryption_and_key_management": {
+    "voice_buffer_encryption_and_decoupled_slas": {
       "envelope_encryption_architecture": [
         "Ephemeral Session Key (K_room): A cryptographically random 256-bit key is generated per room via CSPRNG.",
         "Buffer Encryption: In-memory 30-second rolling audio chunks are encrypted using AES-256-GCM with unique 96-bit nonces.",
         "Key Custody & KMS: K_room is immediately wrapped with an asymmetric Master Moderation Key (K_master) managed in AWS KMS / GCP Cloud KMS (Enc_Kmaster(K_room)).",
-        "RAM Zeroization: Unreported chunks and K_room are wiped from RAM every 30 seconds.",
-        "Audit Trail in Court: Only authenticated Compliance Officers with KMS kms:Decrypt IAM credentials can unwrap K_room to decrypt the reported snippet for subpoenas or moderation appeals."
+        "RAM Zeroization: Unreported chunks and K_room are wiped from RAM every 30 seconds via crypto.randomFillSync.",
+        "Audit Trail in Court: Only authenticated Compliance Officers with KMS kms:Decrypt IAM credentials can unwrap K_room."
       ],
-      "sizing_and_resource_math": {
-        "codec": "Opus at 24 kbps (~3 KB/sec per participant).",
-        "buffer_size": "30 seconds = 90 KB per participant stream.",
-        "cluster_capacity_1000_rooms": "2,000 active streams * 90 KB = 180 MB RAM total.",
-        "cpu_cost": "< 2 microseconds per chunk with hardware AES-NI instructions (< 0.1% CPU load)."
-      }
+      "decoupled_response_slas": {
+        "tier_1_immediate_containment": {
+          "sla": "< 5 minutes (Automated)",
+          "action": "Immediate socket freeze, audio track unpublish, and room quarantine upon report trigger. Operates instantly with zero dependency on KMS unwrap or transcription."
+        },
+        "tier_2_forensic_decryption": {
+          "sla": "< 1 hour",
+          "action": "Asynchronous KMS unwrap (15-30ms latency) and Whisper audio transcription (~15s processing for a 30s Opus chunk) producing timestamped forensic transcripts."
+        },
+        "tier_3_regulatory_export": {
+          "sla": "< 24 hours",
+          "action": "Packaging of decrypted audio, text transcripts, and IP hash for transmission to the NCMEC CyberTipline and legal authorities."
+        }
+      },
+      "sizing_math": "Opus speech at 24 kbps (~3 KB/s) * 30s = 90 KB per participant. 1,000 active 2-person rooms (2,000 streams) = 180 MB RAM total. Modern CPU AES-NI instructions encrypt 90 KB in < 2 microseconds."
     },
     "alertmanager_quarantine_and_anti_brigading": {
-      "vulnerability_mitigated": "Troll brigading where coordinated bad actors report innocent users to trigger false room quarantines.",
       "trust_weighted_abuse_velocity": [
         "Report Weight (W_user): Accounts < 24h old or with < 5 historical chats have W = 0.25 (requiring >= 12 novice reports to trigger quarantine).",
         "Established Accounts: Users >= 30d with zero strikes have W = 1.0 (threshold = 3.0 weighted points in 60s).",
@@ -140,30 +159,15 @@
       },
       {
         "data_type": "Reported Audio & Incident Snapshots",
-        "retention_period": "90 days maximum",
-        "disposition": "Stored in cold encrypted cloud storage with restricted IAM access, automatically purged after 90 days via S3 Lifecycle rule."
+        "retention_period": "90 days maximum (Default)",
+        "legal_hold_override": "If flagged for law enforcement subpoena, NCMEC referral, or active criminal investigation, an immutable S3 Object Lock (Legal Hold) indefinitely freezes the automated purge until formal case closure.",
+        "disposition": "Stored in cold encrypted cloud storage with restricted IAM access, automatically purged after 90 days via S3 Lifecycle rule unless legal hold is active."
       },
       {
         "data_type": "User Account & IP Logs",
         "retention_period": "Duration of active account, wiped within 72h of Right to Erasure request (/api/user/delete)."
       }
     ]
-  },
-  "incident_response_runbook": {
-    "on_call_model": "Solo Maintainer Escalation Protocol.",
-    "severity_tiers": [
-      {
-        "tier": "SEV-1 (CSAM / Credible Harm)",
-        "sla": "< 1 hour",
-        "action": "Immediate emergency room freeze via POST /api/admin/killswitch/room/:id, permanent account ban, and forensic export to NCMEC portal within 24 hours."
-      },
-      {
-        "tier": "SEV-2 (High-Frequency Harassment)",
-        "sla": "< 4 hours",
-        "action": "Room quarantine, temporary 24h user suspension, review of chat and observer suggestion logs."
-      }
-    ],
-    "emergency_killswitch": "Backend provides an authenticated emergency halt route (POST /api/admin/killswitch/emergency-halt) allowing immediate closure of matching queues."
   },
   "single_dev_capacity_and_scope_reduction_plan": {
     "reality": "A solo developer cannot simultaneously maintain a distributed WebRTC mesh, complex media pipelines, and 24/7 manual moderation.",
