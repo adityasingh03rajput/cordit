@@ -1,0 +1,191 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "project": {
+    "name": "Cordit",
+    "version": "1.0.0",
+    "tagline": "Public stranger chat + voice with live observer mode, music sharing, and dynamic wallpaper glassmorphism",
+    "description": "Cordit is a self-hosted, lightweight real-time communication platform combining the spontaneous discovery of Omegle/Chatroulette with Discord-like persistent voice channels and a unique spectator observer mode. Features include numeric anonymous Public IDs (#7368), bidirectional gender-compatible matching, real-time spectator suggestions, browser-to-browser music sharing, and an adaptive wallpaper-driven frosted glassmorphism design system.",
+    "license": "MIT",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/adityasingh03rajput/cordit.git",
+      "branches": {
+        "production": "main",
+        "active_feature": "feature/public-stranger-chat"
+      }
+    }
+  },
+  "core_philosophy": {
+    "anonymity_with_accountability": "Users are assigned clean numeric 4-to-6 digit Public IDs (e.g., #7368) to protect identity while retaining reputation, moderation trails, and ban capabilities.",
+    "transparent_public_conversations": "All stranger chat rooms are 100% public by design. Spectators can drop in as read-only observers, watch conversations unfold in real time, and submit helpful suggestions without breaking conversation flow.",
+    "immersive_visual_harmony": "UI surfaces are constructed with frosted translucent glassmorphism (backdrop-blur-md/xl) that adapt colors, chat bubbles, waveform visualizers, and glowing accents to match the active desktop wallpaper."
+  },
+  "system_architecture": {
+    "topology": "Micro-monolith with separated frontend and backend services backed by MongoDB and a dedicated LiveKit WebRTC Selective Forwarding Unit (SFU).",
+    "services": [
+      {
+        "name": "Frontend Application",
+        "role": "Single Page Application with App Router, server-rendered landing, reactive client components, and audio/socket controllers.",
+        "technology": "Next.js 16 (Turbopack), React 19, TypeScript, Tailwind CSS, Lucide React, Zustand",
+        "default_port": 3001,
+        "entrypoint": "frontend/app/page.tsx"
+      },
+      {
+        "name": "Backend API & Real-time Server",
+        "role": "REST API for authentication, user profiles, room management, upload pipelines, and Socket.io server for matching, messaging, and suggestions.",
+        "technology": "Node.js 20+, Express 4, TypeScript (tsx), Mongoose, Socket.io, LiveKit Server SDK, Winston, Zod",
+        "default_port": 3000,
+        "entrypoint": "backend/src/app.ts"
+      },
+      {
+        "name": "Voice & Media SFU",
+        "role": "Selective Forwarding Unit managing low-latency WebRTC audio channels, participant tracks, and speaking volume indicators.",
+        "technology": "LiveKit Server (Go-based binary)",
+        "default_port": 7880,
+        "entrypoint": "bin/livekit/livekit-server.exe --dev"
+      },
+      {
+        "name": "Primary Database",
+        "role": "Document store for users, public IDs, rooms, chat messages, spectator suggestions, moderation reports, blocks, and invite tokens.",
+        "technology": "MongoDB (Local or MongoDB Memory Server / Docker)",
+        "default_port": 27017,
+        "connection_uri": "mongodb://127.0.0.1:27017/cordit"
+      }
+    ]
+  },
+  "key_features": {
+    "stranger_chat_and_matchmaking": {
+      "summary": "Instant peer matching based on mutual gender preferences and numeric Public IDs.",
+      "capabilities": [
+        "Numeric Public IDs: 4-6 digit numeric handles (#7368) generated at registration.",
+        "Mutual Compatibility Filtering: Matches 'My Gender' (male, female, other) with 'Looking For' (male, female, any) bidirectionally.",
+        "Direct Public ID Connect: Enter a specific public ID to connect directly with an active user.",
+        "Queue Pool Management: Real-time pooling with timeout fallbacks and automatic reconnection handling."
+      ]
+    },
+    "public_conversations_and_observer_mode": {
+      "summary": "Any active conversation can be observed live by other community members.",
+      "capabilities": [
+        "Unauthenticated or Peer Spectating: Observers join rooms in read-only mode without requiring host approval.",
+        "Live Observer Count: Real-time badges notify active chatters how many spectators are watching.",
+        "Spectator Suggestions: Observers can submit conversation starters and icebreakers.",
+        "Participant Privacy Controls: Chat participants can toggle observer advice visibility on or off at will.",
+        "Strict Server-side Enforcement: Observers are prevented at the WebSocket handler level from sending direct chat messages."
+      ]
+    },
+    "voice_channels_and_spatial_audio": {
+      "summary": "Low-latency WebRTC voice communication powered by LiveKit SFU.",
+      "capabilities": [
+        "Live Voice Rooms: Embedded voice channels inside stranger chats or standalone public channels.",
+        "Dynamic Waveform Visualizer: Animated audio spectrum bars that sync with voice activity.",
+        "Per-User Volume Controls: Independent volume sliders for each participant in the call.",
+        "Mute & Deafen: Hardware and software mic toggle with local stream pausing."
+      ]
+    },
+    "browser_tab_music_sharing": {
+      "summary": "Desktop browser audio capture for shared listening sessions.",
+      "capabilities": [
+        "Zero-transcode Streaming: Leverages navigator.mediaDevices.getDisplayMedia({ audio: true }) to stream audio directly.",
+        "Universal Compatibility: Streams Spotify, YouTube, Soundcloud, or any open browser tab.",
+        "Synchronized Audio Track: Streams as an auxiliary audio track in the LiveKit room."
+      ]
+    },
+    "dynamic_wallpaper_glassmorphism_theming": {
+      "summary": "Contextual UI adaptation based on 8 curated desktop artworks.",
+      "curated_wallpapers": [
+        { "id": "cherry-blossom", "title": "Moonlit Cherry Blossom Mountain Retreat", "tone": "violet_night" },
+        { "id": "crimson-wanderer", "title": "Crimson Sumi-e Sunset Wanderer", "tone": "crimson_paper" },
+        { "id": "anime-sunset", "title": "Anime Sunset Serenity with Torii", "tone": "golden_amber" },
+        { "id": "samurai-moon", "title": "Samurai Under the Violet Moon", "tone": "neon_purple" },
+        { "id": "aurora-valley", "title": "Aurora Over the Snowy Valley", "tone": "emerald_cyan" },
+        { "id": "starlit-valley", "title": "Starlit Valley Beneath the Golden Tree", "tone": "deep_midnight" },
+        { "id": "crimson-mist", "title": "Crimson Mist Torii Landscape", "tone": "ruby_dark" },
+        { "id": "headphones-red-moon", "title": "Headphones Beneath the Red Moon", "tone": "minimal_black_red" }
+      ],
+      "aesthetic_features": [
+        "Ultra-Clear Frosted Glass: backdrop-blur-md/2xl with 12%-35% transparency allows background artwork to show through cleanly.",
+        "Color Token Adaptation: Accent borders, message bubbles, brand tags, and waveform hues automatically adjust when switching wallpapers.",
+        "Custom Auth Portal: Glowing violet glass card with interactive password visibility toggle, matching the moonlit cherry blossom landscape."
+      ]
+    },
+    "moderation_and_safety": {
+      "summary": "Multi-tier defense to keep public stranger chats civil and safe.",
+      "capabilities": [
+        "One-Click User Blocking: Blocks target user by Public ID, permanently eliminating future matches.",
+        "Incident Reporting: Generates an immutable snapshot containing recent messages, room ID, reporter, and suspect ID.",
+        "Admin Moderation Console: Dedicated /admin portal for inspecting reported chat contexts, suspending accounts, and executing permanent bans."
+      ]
+    }
+  },
+  "backend_specifications": {
+    "database_models": {
+      "User": {
+        "fields": ["_id", "username", "password", "publicId", "gender", "genderPreference", "status", "role", "blockedUsers", "avatar", "createdAt", "updatedAt"],
+        "indexes": ["publicId (unique)", "username (sparse, unique)"]
+      },
+      "Room": {
+        "fields": ["_id", "name", "type ('stranger' | 'public' | 'voice')", "participants", "observers", "isPublic", "createdAt", "updatedAt"]
+      },
+      "Message": {
+        "fields": ["_id", "room", "sender", "content", "type ('text' | 'media' | 'system')", "fileUrl", "createdAt"]
+      },
+      "Suggestion": {
+        "fields": ["_id", "room", "author", "content", "votes", "createdAt"]
+      },
+      "Report": {
+        "fields": ["_id", "reporter", "reportedUser", "room", "reason", "status ('pending' | 'resolved' | 'dismissed')", "contextSnapshot", "createdAt"]
+      },
+      "Block": {
+        "fields": ["_id", "blocker", "blocked", "createdAt"]
+      },
+      "InviteCode": {
+        "fields": ["_id", "code", "createdBy", "usedBy", "isUsed", "expiresAt", "createdAt"]
+      }
+    },
+    "rest_api_routes": {
+      "auth_and_user": [
+        { "method": "POST", "path": "/api/user/register", "desc": "Register account, assign gender preferences & generate publicId" },
+        { "method": "POST", "path": "/api/user/login", "desc": "Authenticate by username or publicId, issue JWT token" },
+        { "method": "GET", "path": "/api/user/me", "desc": "Fetch authenticated user profile and block list" },
+        { "method": "GET", "path": "/api/user/search/:publicId", "desc": "Lookup active user by numeric publicId" }
+      ],
+      "rooms_and_messages": [
+        { "method": "GET", "path": "/api/room", "desc": "List public rooms and active stranger sessions" },
+        { "method": "POST", "path": "/api/room/:id/token", "desc": "Generate LiveKit WebRTC access token for voice channel" },
+        { "method": "GET", "path": "/api/message/:roomId", "desc": "Retrieve historical messages for a room" }
+      ],
+      "moderation_and_admin": [
+        { "method": "POST", "path": "/api/moderation/block", "desc": "Block a user by publicId" },
+        { "method": "POST", "path": "/api/moderation/report", "desc": "File a report with incident snapshot" },
+        { "method": "GET", "path": "/api/moderation/reports", "desc": "Admin review queue of reported users" },
+        { "method": "PATCH", "path": "/api/moderation/users/:id/status", "desc": "Suspend or ban a user account" }
+      ]
+    },
+    "socket_events": {
+      "matchmaking": ["join_queue", "leave_queue", "match_found", "match_cancelled"],
+      "chat": ["join_room", "leave_room", "send_message", "receive_message", "typing_start", "typing_stop"],
+      "observer": ["join_as_observer", "observer_joined", "observer_left", "new_suggestion", "observer_count_update"]
+    }
+  },
+  "frontend_specifications": {
+    "directory_structure": {
+      "app/": "Next.js routes (/login, /register, /admin, /)",
+      "components/": "UI modules (MasterFeedTile, LeftNavigation, RightSidebar, VoiceChat, MatchingModal, WallpaperModal, etc.)",
+      "lib/": "State store (Zustand), API client (Axios), Socket hooks (useSocket), Theme registry (themeRegistry.ts, ThemeContext.tsx)",
+      "public/wallpapers/": "8 high-definition desktop wallpapers and artwork assets"
+    },
+    "state_management": {
+      "library": "Zustand",
+      "slices": ["user", "activeRoom", "messages", "observers", "suggestions", "voiceState", "activeTheme", "mediaUploads"]
+    }
+  },
+  "runtime_and_deployment": {
+    "local_daemons": {
+      "mongodb": "node local-mongo.mjs (127.0.0.1:27017)",
+      "backend": "tsx watch src/app.ts (http://localhost:3000)",
+      "livekit": "livekit-server.exe --dev (http://localhost:7880)",
+      "frontend": "npm run dev --port 3001 (http://localhost:3001)"
+    },
+    "containerization": "Multi-container docker-compose.yml orchestrating Frontend, Backend, LiveKit, and MongoDB services."
+  }
+}
