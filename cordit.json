@@ -1,7 +1,7 @@
 {
   "project": {
     "name": "Cordit",
-    "version": "1.0.0-beta.4",
+    "version": "1.0.0-beta.5",
     "tagline": "Public stranger chat + voice with live observer mode, music sharing, and dynamic wallpaper glassmorphism",
     "status": "Alpha / Hardened Developer Sandbox",
     "active_branch": "feature/public-stranger-chat",
@@ -10,14 +10,18 @@
     "repository": {
       "type": "git",
       "url": "https://github.com/adityasingh03rajput/cordit.git",
-      "ci_workflow": ".github/workflows/security-ci.yml"
+      "ci_workflow": ".github/workflows/security-ci.yml",
+      "ci_badge": "https://github.com/adityasingh03rajput/cordit/actions/workflows/security-ci.yml/badge.svg",
+      "ci_runs_url": "https://github.com/adityasingh03rajput/cordit/actions/workflows/security-ci.yml",
+      "last_verified_commit": "1e94ef2"
     }
   },
   "production_launch_gate_criteria": {
     "policy": "HARD BLOCKER — Public registration, external marketing, and un-gated DNS traffic are strictly restricted to staging/sandbox until 100% of the following critical safety and infrastructure gates pass automated verification.",
     "gate_governance": {
       "audit_cadence": "Bi-weekly sprint re-audit cadence.",
-      "graduation_criteria": "A gate only transitions from INTERIM_MITIGATION_ACTIVE or BLOCKED to PASSED when production code is merged, integration tests pass in .github/workflows/security-ci.yml, and formal sign-off is tagged in git."
+      "event_driven_triggers": "Any pull request or commit modifying security-critical files (backend/src/utils/socket.ts, backend/src/validators/*, backend/src/routes/upload.ts, backend/src/services/matchingService.ts, frontend/app/register/page.tsx) automatically triggers the security CI pipeline and requires fresh verification before merge.",
+      "graduation_criteria": "A gate only transitions from INTERIM_MITIGATION_ACTIVE or BLOCKED to PASSED when production code is merged to main, integration tests pass in .github/workflows/security-ci.yml, and formal sign-off is tagged in git."
     },
     "gate_checklist": [
       {
@@ -26,11 +30,16 @@
         "requirement": "Automated perceptual hashing (PDQ/PhotoDNA) on media upload pipelines with automated NCMEC referral triggers.",
         "status": "INTERIM_MITIGATION_ACTIVE",
         "interim_mitigation": "Binary media uploads in stranger chat are hard-locked on both frontend and backend (POST /upload/request returns 403 Forbidden). Non-admin stranger rooms are text and WebRTC audio only.",
+        "graduation_roadmap": {
+          "target_sprint": "Sprint 3",
+          "exit_criteria": "Integration of pdq-wasm or cloud PhotoDNA API with automated test suite asserting positive rejection of standard test hashes."
+        },
         "verification": {
           "method": "Automated CI Test Suite",
           "command": "npm run test:security",
           "test_file": "backend/test-security-gates.ts (Test 1)",
           "ci_pipeline": ".github/workflows/security-ci.yml",
+          "last_verified_commit": "1e94ef2",
           "result": "PASSED (binary upload rejected with 403)"
         }
       },
@@ -45,6 +54,7 @@
           "command": "npm run test:security",
           "test_file": "backend/test-security-gates.ts (Test 2)",
           "ci_pipeline": ".github/workflows/security-ci.yml",
+          "last_verified_commit": "1e94ef2",
           "result": "PASSED (unconfirmed age rejected; ageConfirmed=true accepted)"
         }
       },
@@ -59,6 +69,7 @@
           "command": "npm run test:security",
           "test_file": "backend/test-security-gates.ts (Test 3)",
           "ci_pipeline": ".github/workflows/security-ci.yml",
+          "last_verified_commit": "1e94ef2",
           "result": "PASSED (rapid second suggestion blocked with accurate cooldown timer)"
         }
       },
@@ -68,6 +79,10 @@
         "requirement": "Rolling in-memory 30s audio buffer with on-demand encrypted transcription via Whisper for reported sessions.",
         "status": "BLOCKED — RESTRICTED_SANDBOX_ONLY",
         "interim_mitigation": "Voice channels restricted to mutual direct ID calls. Public registration restricted via invite codes (INVITE_ONLY=true).",
+        "graduation_roadmap": {
+          "target_sprint": "Sprint 3",
+          "exit_criteria": "LiveKit Egress worker deployed alongside Whisper API integration with automated synthetic audio speech-to-text benchmark."
+        },
         "verification": {
           "method": "Planned LiveKit Egress Worker Integration Test",
           "ci_pipeline": ".github/workflows/security-ci.yml (Target: Sprint 3)"
@@ -79,6 +94,10 @@
         "requirement": "Migration of matching pool from single-node memory to Redis Streams with consumer group ACK persistence.",
         "status": "BLOCKED — RESTRICTED_SANDBOX_ONLY",
         "interim_mitigation": "Single-node dev process. Concurrency capped at 50 simultaneous matches in local testbed.",
+        "graduation_roadmap": {
+          "target_sprint": "Sprint 2",
+          "exit_criteria": "Redis 7.x Streams deployment with automated chaos test script simulating 100 concurrent matches with random worker termination."
+        },
         "verification": {
           "method": "Planned Redis Cluster Chaos Test",
           "ci_pipeline": ".github/workflows/security-ci.yml (Target: Sprint 2)"
@@ -91,7 +110,8 @@
       "why_not_pub_sub": "Redis Pub/Sub is fire-and-forget. If a worker crashes mid-handshake, the match event is permanently dropped.",
       "reclaim_window_and_dead_letter_queue": {
         "min_idle_time": "12000 ms (12 seconds) tuned to P99.9 mobile network latency and connection jitter.",
-        "bounded_retries": "Consumer group inspects delivery_count metadata. If delivery_count > 3, the message is automatically routed to a Dead Letter Queue (stream:matching:dlq) and acknowledged with XACK to prevent poison-pill infinite reclaim loops."
+        "bounded_retries": "Consumer group inspects delivery_count metadata. If delivery_count > 3, the message is automatically routed to a Dead Letter Queue (stream:matching:dlq) and acknowledged with XACK to prevent poison-pill infinite reclaim loops.",
+        "dlq_monitoring_and_alerting": "Prometheus metric cordit_matching_dlq_depth scraped every 15s. Alertmanager triggers a critical notification to Discord/Slack if DLQ depth > 0 for > 5 minutes."
       },
       "idempotency_and_double_match_prevention": [
         "Deterministic Idempotency Key: lock:match:hash(min(uA,uB), max(uA,uB), epoch_slot_30s) acquired via SET ... NX EX 30.",
@@ -107,16 +127,20 @@
         "RAM Zeroization: Unreported chunks and K_room are wiped from RAM every 30 seconds via crypto.randomFillSync.",
         "Audit Trail in Court: Only authenticated Compliance Officers with KMS kms:Decrypt IAM credentials can unwrap K_room."
       ],
-      "decoupled_response_slas": {
+      "kms_outage_fallback": "If AWS/GCP KMS experiences an outage during forensic decryption, Tier-1 automated containment remains 100% active. The raw encrypted audio buffer and wrapped key payload are safely committed to cold storage, and the incident is marked with a deferred decryption flag (DEFERRED_DECRYPT_KMS_OUTAGE) to be processed upon KMS recovery.",
+      "decoupled_incident_response_slas": {
         "tier_1_immediate_containment": {
+          "severity": "SEV-1 & SEV-2 Incident Response Trigger",
           "sla": "< 5 minutes (Automated)",
-          "action": "Immediate socket freeze, audio track unpublish, and room quarantine upon report trigger. Operates instantly with zero dependency on KMS unwrap or transcription."
+          "action": "Immediate socket freeze, audio track unpublish, and room quarantine upon report trigger. Operates instantly with zero dependency on KMS unwrap or Whisper transcription."
         },
         "tier_2_forensic_decryption": {
+          "severity": "Forensic Investigation Trigger",
           "sla": "< 1 hour",
           "action": "Asynchronous KMS unwrap (15-30ms latency) and Whisper audio transcription (~15s processing for a 30s Opus chunk) producing timestamped forensic transcripts."
         },
         "tier_3_regulatory_export": {
+          "severity": "Legal & NCMEC Compliance Trigger",
           "sla": "< 24 hours",
           "action": "Packaging of decrypted audio, text transcripts, and IP hash for transmission to the NCMEC CyberTipline and legal authorities."
         }
@@ -145,6 +169,7 @@
         "cordit_active_observers{room_id}: Gauge tracking current spectators",
         "cordit_reports_total{reason, severity}: Counter tracking filed abuse reports",
         "cordit_suggestion_rate{public_id}: Counter measuring suggestion velocity",
+        "cordit_matching_dlq_depth: Gauge tracking dead-letter queue count",
         "cordit_voice_seconds_total: Counter tracking WebRTC egress duration"
       ]
     }
@@ -160,7 +185,10 @@
       {
         "data_type": "Reported Audio & Incident Snapshots",
         "retention_period": "90 days maximum (Default)",
-        "legal_hold_override": "If flagged for law enforcement subpoena, NCMEC referral, or active criminal investigation, an immutable S3 Object Lock (Legal Hold) indefinitely freezes the automated purge until formal case closure.",
+        "legal_hold_override": {
+          "policy": "If flagged for law enforcement subpoena, NCMEC referral, or active criminal investigation, an immutable S3 Object Lock (Legal Hold) indefinitely freezes the automated purge.",
+          "release_path": "Legal holds can only be removed by authenticated Compliance Officers via a dedicated IAM role requiring multi-factor authentication (s3:PutObjectLegalHold with legal_hold=OFF). Every release event is immutably logged to AWS CloudTrail with mandatory docket reference numbers."
+        },
         "disposition": "Stored in cold encrypted cloud storage with restricted IAM access, automatically purged after 90 days via S3 Lifecycle rule unless legal hold is active."
       },
       {
