@@ -5,14 +5,16 @@ import { useSocket } from '@/lib/useSocket';
 import { format } from 'date-fns';
 
 export default function ObserverSuggestionsPanel() {
-  const { currentRoom, suggestions, showSuggestions, userRoleInCurrentRoom } = useStore();
+  const { currentRoom, user, suggestions, showSuggestions, userRoleInCurrentRoom } = useStore();
   const { toggleSuggestionVisibility } = useSocket();
 
   if (!currentRoom || currentRoom.roomType !== 'stranger_chat' || !showSuggestions || suggestions.length === 0) {
     return null;
   }
 
-  const isParticipant = userRoleInCurrentRoom === 'participant';
+  const isParticipant =
+    userRoleInCurrentRoom === 'participant' ||
+    (user && currentRoom.participants?.some((p: any) => p === user._id || p?._id === user._id || String(p) === String(user._id)));
 
   return (
     <div className="border-b-[3px] border-black bg-surface p-2.5 sm:p-3">

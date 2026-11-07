@@ -76,7 +76,9 @@ class MatchingService {
   public unregisterSocket(socketId: string): void {
     const user = this.onlineUsers.get(socketId);
     if (user) {
-      this.publicIdToSocketId.delete(user.publicId);
+      if (this.publicIdToSocketId.get(user.publicId) === socketId) {
+        this.publicIdToSocketId.delete(user.publicId);
+      }
       this.onlineUsers.delete(socketId);
       this.removeFromQueue(socketId);
       logger.info(`User #${user.publicId} unregistered from socket ${socketId}`);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import { useSocket } from '@/lib/useSocket';
@@ -132,9 +132,29 @@ export default function Home() {
     }
   }, [rooms, setCurrentRoom, setMessages]);
 
+  // Check if current user is an active participant in this room
+  const isParticipantInRoom = useMemo(() => {
+    if (!currentRoom) return false;
+    if (currentRoom.roomType === 'channel') return true;
+    if (matchedPartner) return true;
+    if (userRoleInCurrentRoom === 'participant') return true;
+    if (
+      user &&
+      currentRoom.participants?.some(
+        (p: any) =>
+          p === user._id ||
+          p?._id === user._id ||
+          String(p) === String(user._id)
+      )
+    ) {
+      return true;
+    }
+    return false;
+  }, [currentRoom, matchedPartner, userRoleInCurrentRoom, user]);
+
   // Rename Room Handler (Both participants can rename)
   const handleStartEditRoomName = () => {
-    if (userRoleInCurrentRoom === 'observer') return;
+    if (!isParticipantInRoom) return;
     setRoomNameInput(currentRoom?.name || '');
     setIsEditingRoomName(true);
   };
@@ -201,12 +221,27 @@ export default function Home() {
         setRooms(data.rooms || []);
 
         if (data.rooms && data.rooms.length > 0 && !currentRoom) {
-          // Prefer stranger chat room if available
-          const strangerRoom = data.rooms.find((r: any) => r.roomType === 'stranger_chat') || data.rooms[0];
-          setCurrentRoom(strangerRoom);
-          const messagesData = await messageAPI.getByRoom(strangerRoom._id);
-          setMessages(messagesData.messages || []);
-          await roomAPI.join(strangerRoom._id);
+          // If the user was already a participant in an active stranger chat, resume it
+          const activeUserRoom = data.rooms.find(
+            (r: any) =>
+              r.roomType === 'stranger_chat' &&
+              r.status === 'active' &&
+              r.participants?.some(
+                (p: any) =>
+                  p === user._id ||
+                  p?._id === user._id ||
+                  String(p) === String(user._id)
+              )
+          );
+
+          if (activeUserRoom) {
+            setCurrentRoom(activeUserRoom);
+            const messagesData = await messageAPI.getByRoom(activeUserRoom._id);
+            setMessages(messagesData.messages || []);
+            await roomAPI.join(activeUserRoom._id);
+          }
+          // If not an active participant in any stranger chat, leave currentRoom as null
+          // so the user starts cleanly on StrangerChatLanding (MEET SOMEONE NEW)
         }
       } catch (error) {
         console.error('Failed to load rooms:', error);
@@ -511,14 +546,14 @@ export default function Home() {
                   <div
                     className="flex flex-col group cursor-pointer"
                     onClick={handleStartEditRoomName}
-                    title={userRoleInCurrentRoom === 'observer' ? 'Observers cannot rename' : 'Click to rename room'}
+                    title={!isParticipantInRoom ? 'Observers cannot rename' : 'Click to rename room'}
                   >
                     <h2 className="text-sm sm:text-lg font-bold tracking-tight flex items-center gap-1.5" style={{ color: theme.text }}>
                       <span>#</span>
                       <span className="truncate max-w-[130px] sm:max-w-[260px] hover:underline">
                         {currentRoom?.name || 'Stranger Chat'}
                       </span>
-                      {userRoleInCurrentRoom !== 'observer' && (
+                      {isParticipantInRoom && (
                         <span
                           className="opacity-40 group-hover:opacity-100 transition-opacity text-xs"
                           title="Rename room"
@@ -742,7 +777,7 @@ export default function Home() {
                 accept="image/*,video/*,audio/*"
                 onChange={handleFileSelect}
                 className="hidden"
-                disabled={userRoleInCurrentRoom === 'observer'}
+                disabled={!isParticipantInRoom}
               />
 
               <div
@@ -756,7 +791,7 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={userRoleInCurrentRoom === 'observer'}
+                  disabled={!isParticipantInRoom}
                   className="transition-colors disabled:opacity-40"
                   style={{ color: theme.textMuted }}
                   title="Attach file"
@@ -787,11 +822,11 @@ export default function Home() {
                   value={messageText}
                   onChange={(e) => handleTyping(e.target.value)}
                   placeholder={
-                    userRoleInCurrentRoom === 'observer'
+                    !isParticipantInRoom
                       ? 'You are an observer (read-only mode)'
                       : 'Type your message...'
                   }
-                  disabled={userRoleInCurrentRoom === 'observer'}
+                  disabled={!isParticipantInRoom}
                   className="flex-1 bg-transparent text-sm focus:outline-none font-medium disabled:opacity-60"
                   style={{ color: theme.incomingText }}
                   maxLength={2000}
@@ -804,7 +839,7 @@ export default function Home() {
                 disabled={
                   sendingMessage ||
                   (!messageText.trim() && !pendingFile) ||
-                  userRoleInCurrentRoom === 'observer'
+                  !isParticipantInRoom
                 }
                 className="w-[42px] sm:w-[48px] h-[42px] sm:h-[48px] active:scale-95 rounded-full sm:rounded-2xl flex items-center justify-center transition-all shadow-md disabled:cursor-not-allowed disabled:opacity-30 flex-shrink-0 hover:scale-102"
                 style={{

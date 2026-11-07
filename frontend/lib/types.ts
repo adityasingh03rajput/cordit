@@ -1,4 +1,5 @@
 export interface User {
+  _id?: string;
   username: string;
   publicId?: number;
   gender?: 'male' | 'female' | 'other';
@@ -37,6 +38,8 @@ export interface Room {
   roomType?: 'channel' | 'stranger_chat';
   status?: 'active' | 'ended';
   isPublic?: boolean;
+  participants?: any[];
+  observers?: any[];
   maxUsers?: number;
   activeUserCount?: number;
   observerCount?: number;

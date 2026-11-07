@@ -5,7 +5,7 @@ import { useStore } from '@/lib/store';
 import { useSocket } from '@/lib/useSocket';
 
 export default function PublicDisclosureBanner() {
-  const { currentRoom, userRoleInCurrentRoom, suggestions, showSuggestions, setShowSuggestions } = useStore();
+  const { currentRoom, user, userRoleInCurrentRoom, suggestions, showSuggestions, setShowSuggestions } = useStore();
   const { sendSuggestion } = useSocket();
   const [suggestionText, setSuggestionText] = useState('');
   const [sendingSuggestion, setSendingSuggestion] = useState(false);
@@ -15,7 +15,10 @@ export default function PublicDisclosureBanner() {
     return null;
   }
 
-  const isObserver = userRoleInCurrentRoom === 'observer';
+  const isParticipant =
+    userRoleInCurrentRoom === 'participant' ||
+    (user && currentRoom.participants?.some((p: any) => p === user._id || p?._id === user._id || String(p) === String(user._id)));
+  const isObserver = !isParticipant;
 
   const handleSuggestionSubmit = (e: React.FormEvent) => {
     e.preventDefault();

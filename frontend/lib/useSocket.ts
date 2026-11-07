@@ -55,6 +55,7 @@ export const useSocket = () => {
   const {
     user,
     currentRoom,
+    isConnected,
     addMessage,
     setConnected,
     addTypingUser,
@@ -71,6 +72,9 @@ export const useSocket = () => {
     updateRoomName,
   } = useStore();
 
+  const currentRoomRef = useRef(currentRoom);
+  currentRoomRef.current = currentRoom;
+
   useEffect(() => {
     const token = user?.token || (typeof window !== 'undefined' ? localStorage.getItem('token') : null);
     if (!token) return;
@@ -83,6 +87,9 @@ export const useSocket = () => {
 
       socket.on('connect', () => {
         setConnected(true);
+        if (currentRoomRef.current?._id) {
+          socket.emit('join_room', { roomId: currentRoomRef.current._id });
+        }
       });
 
       socket.on('connect_error', (err) => {
@@ -184,6 +191,10 @@ export const useSocket = () => {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });
+
+        if (socket.connected) {
+          socket.emit('join_room', { roomId: data.roomId });
+        }
       });
 
       socket.on('error', (error: { message: string }) => {
@@ -203,7 +214,7 @@ export const useSocket = () => {
         socketRef.current?.emit('leave_room', { roomId: currentRoomId });
       };
     }
-  }, [currentRoomId]);
+  }, [currentRoomId, isConnected]);
 
   const sendMessage = (text: string, attachment?: FileAttachment) => {
     if (socketRef.current && currentRoom) {

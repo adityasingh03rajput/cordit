@@ -327,7 +327,15 @@ export const initializeSocket = (httpServer: HTTPServer) => {
 
         const isParticipant =
           room.roomType === 'channel' ||
-          room.participants?.some((p) => p.toString() === socket.userDocId);
+          room.participants?.some((p) => p.toString() === socket.userDocId) ||
+          room.activeUsers?.some(
+            (u) =>
+              u.role === 'participant' &&
+              (u.userId?.toString() === socket.userDocId ||
+               u.username === socket.username ||
+               u.publicId === socket.publicId)
+          ) ||
+          socket.role === 'admin';
 
         const role = isParticipant ? 'participant' : 'observer';
 
@@ -407,9 +415,16 @@ export const initializeSocket = (httpServer: HTTPServer) => {
 
         // STRICT SERVER-SIDE AUTHORIZATION: Observers cannot send direct chat messages!
         if (room.roomType === 'stranger_chat') {
-          const isParticipant = room.participants?.some(
-            (p) => p.toString() === socket.userDocId,
-          );
+          const isParticipant =
+            room.participants?.some((p) => p.toString() === socket.userDocId) ||
+            room.activeUsers?.some(
+              (u) =>
+                u.role === 'participant' &&
+                (u.userId?.toString() === socket.userDocId ||
+                 u.username === socket.username ||
+                 u.publicId === socket.publicId)
+            ) ||
+            socket.role === 'admin';
           if (!isParticipant) {
             socket.emit('error', {
               message: 'Observers cannot send direct chat messages. Use suggestions instead.',
@@ -591,8 +606,15 @@ export const initializeSocket = (httpServer: HTTPServer) => {
 
         // Validate user is a participant or member
         const isParticipant =
+          room.roomType === 'channel' ||
           room.participants?.some((p) => p.toString() === socket.userDocId) ||
-          room.activeUsers.some((u) => u.username === socket.username) ||
+          room.activeUsers?.some(
+            (u) =>
+              u.role === 'participant' ||
+              u.userId?.toString() === socket.userDocId ||
+              u.username === socket.username ||
+              u.publicId === socket.publicId
+          ) ||
           socket.role === 'admin';
 
         if (!isParticipant) {
