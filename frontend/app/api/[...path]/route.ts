@@ -2,46 +2,73 @@ import { NextRequest } from 'next/server';
 
 const BACKEND_URL = process.env.BACKEND_INTERNAL_URL || 'http://localhost:3000';
 
+const DISALLOWED_HEADERS = new Set([
+  'host',
+  'content-length',
+  'expect',
+  'connection',
+  'keep-alive',
+  'proxy-authenticate',
+  'proxy-authorization',
+  'te',
+  'trailer',
+  'transfer-encoding',
+  'upgrade',
+]);
+
 async function proxy(
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
   request: NextRequest,
   params: Promise<{ path: string[] }>,
 ) {
-  const { path } = await params;
-  const pathname = path.join('/');
-  const searchParams = request.nextUrl.searchParams.toString();
-  const url = `${BACKEND_URL}/${pathname}${searchParams ? `?${searchParams}` : ''}`;
+  try {
+    const { path } = await params;
+    const pathname = path.join('/');
+    const searchParams = request.nextUrl.searchParams.toString();
+    const url = `${BACKEND_URL}/${pathname}${searchParams ? `?${searchParams}` : ''}`;
 
-  const headers = new Headers();
-  request.headers.forEach((value, key) => {
-    const lower = key.toLowerCase();
-    if (lower === 'host' || lower === 'content-length') return;
-    headers.set(key, value);
-  });
+    const headers = new Headers();
+    request.headers.forEach((value, key) => {
+      const lower = key.toLowerCase();
+      if (DISALLOWED_HEADERS.has(lower)) return;
+      headers.set(key, value);
+    });
 
-  const init: RequestInit = {
-    method,
-    headers,
-  };
+    const init: RequestInit = {
+      method,
+      headers,
+    };
 
-  if (method === 'POST' || method === 'PUT') {
-    const body = await request.arrayBuffer();
-    init.body = body;
+    if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
+      const body = await request.arrayBuffer();
+      if (body.byteLength > 0) {
+        init.body = body;
+      }
+    }
+
+    const response = await fetch(url, init);
+    const data = await response.arrayBuffer();
+
+    const responseHeaders = new Headers();
+    response.headers.forEach((value, key) => {
+      if (key.toLowerCase() === 'content-length') return;
+      responseHeaders.set(key, value);
+    });
+
+    return new Response(data, {
+      status: response.status,
+      headers: responseHeaders,
+    });
+  } catch (error: any) {
+    console.error('API Proxy error:', error);
+    return new Response(
+      JSON.stringify({ error: error?.message || 'Internal Server Error' }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
   }
-
-  const response = await fetch(url, init);
-  const data = await response.arrayBuffer();
-
-  const responseHeaders = new Headers();
-  response.headers.forEach((value, key) => {
-    if (key.toLowerCase() === 'content-length') return;
-    responseHeaders.set(key, value);
-  });
-
-  return new Response(data, {
-    status: response.status,
-    headers: responseHeaders,
-  });
 }
 
 export async function GET(
@@ -63,6 +90,13 @@ export async function PUT(
   { params }: { params: Promise<{ path: string[] }> },
 ) {
   return proxy('PUT', request, params);
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> },
+) {
+  return proxy('PATCH', request, params);
 }
 
 export async function DELETE(
