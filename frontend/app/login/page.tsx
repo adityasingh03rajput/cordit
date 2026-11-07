@@ -59,7 +59,7 @@ export default function LoginPage() {
       localStorage.setItem('user', JSON.stringify(user));
       setUser(user);
 
-      router.push('/');
+      window.location.href = '/';
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, 'Login failed'));
     } finally {

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import { useSocket } from '@/lib/useSocket';
-import { roomAPI, messageAPI, uploadAPI, moderationAPI } from '@/lib/api';
+import { roomAPI, messageAPI, uploadAPI, moderationAPI, userAPI } from '@/lib/api';
 import type { FileAttachment } from '@/lib/types';
 import VoiceChat from '@/components/VoiceChat';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -132,24 +132,47 @@ export default function Home() {
 
   // Auth redirect and user state restoration
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const token = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
+
     if (!token) {
-      router.push('/login');
+      window.location.replace('/login');
       return;
     }
+
     if (storedUser && !user) {
       try {
         const parsed = JSON.parse(storedUser);
         if (parsed) {
           if (!parsed.token) parsed.token = token;
           setUser(parsed);
+          return;
         }
       } catch (err) {
         console.error('Failed to restore user from localStorage:', err);
       }
     }
-  }, [router, user, setUser]);
+
+    if (!user) {
+      userAPI.getMe().then((data: any) => {
+        if (data?.user) {
+          const fullUser = { ...data.user, token };
+          localStorage.setItem('user', JSON.stringify(fullUser));
+          setUser(fullUser);
+        } else {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.replace('/login');
+        }
+      }).catch(() => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.replace('/login');
+      });
+    }
+  }, [user, setUser]);
 
   // Initial rooms load
   useEffect(() => {
@@ -355,10 +378,20 @@ export default function Home() {
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f4f0e8] text-neutral-800">
-        <div className="flex flex-col items-center gap-3">
+      <div className="min-h-screen flex items-center justify-center bg-[#141418] text-white">
+        <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 rounded-full border-4 border-[#b91c1c] border-t-transparent animate-spin" />
-          <span className="font-bold text-sm tracking-widest uppercase">Connecting to Cordit...</span>
+          <span className="font-bold text-sm tracking-widest uppercase opacity-80">Connecting to Cordit...</span>
+          <button
+            onClick={() => {
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              window.location.replace('/login');
+            }}
+            className="text-xs text-[#f87171] hover:underline opacity-70 hover:opacity-100 transition-opacity"
+          >
+            Go to Login →
+          </button>
         </div>
       </div>
     );
