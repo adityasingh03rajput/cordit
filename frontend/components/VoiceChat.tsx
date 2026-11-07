@@ -571,7 +571,11 @@ export default function VoiceChat({
 
       if (response.livekitToken && response.livekitUrl) {
         setLivekitToken(response.livekitToken);
-        setLivekitUrl(response.livekitUrl);
+        let resolvedUrl = response.livekitUrl;
+        if (typeof window !== 'undefined' && resolvedUrl.includes('localhost') && window.location.hostname !== 'localhost') {
+          resolvedUrl = resolvedUrl.replace('localhost', window.location.hostname);
+        }
+        setLivekitUrl(resolvedUrl);
         setIsJoined(true);
         onJoinStateChange?.(true);
       } else {

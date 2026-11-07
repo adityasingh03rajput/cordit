@@ -25,6 +25,7 @@ export default function Home() {
   const router = useRouter();
   const {
     user,
+    setUser,
     currentRoom,
     rooms,
     messages,
@@ -129,13 +130,26 @@ export default function Home() {
     }
   }, [rooms, setCurrentRoom, setMessages]);
 
-  // Auth redirect check
+  // Auth redirect and user state restoration
   useEffect(() => {
     const token = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
     if (!token) {
       router.push('/login');
+      return;
     }
-  }, [router]);
+    if (storedUser && !user) {
+      try {
+        const parsed = JSON.parse(storedUser);
+        if (parsed) {
+          if (!parsed.token) parsed.token = token;
+          setUser(parsed);
+        }
+      } catch (err) {
+        console.error('Failed to restore user from localStorage:', err);
+      }
+    }
+  }, [router, user, setUser]);
 
   // Initial rooms load
   useEffect(() => {
@@ -711,7 +725,7 @@ export default function Home() {
           </div>
         ) : (
           <div
-            className="flex-1 overflow-y-auto px-6 py-4 rounded-[24px] border backdrop-blur-md"
+            className="flex-1 overflow-y-auto rounded-none sm:rounded-[24px] border-0 sm:border backdrop-blur-md flex flex-col items-center justify-center p-2 sm:p-6"
             style={{
               backgroundColor: theme.surface,
               borderColor: theme.border,

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from '@/lib/store';
 import { useSocket } from '@/lib/useSocket';
 import { userAPI } from '@/lib/api';
+import { useTheme } from '@/lib/ThemeContext';
 
 interface StrangerChatLandingProps {
   onOpenSidebar?: () => void;
@@ -24,6 +25,7 @@ export default function StrangerChatLanding({ onOpenSidebar }: StrangerChatLandi
   } = useStore();
 
   const { joinMatchingQueue, leaveMatchingQueue, requestDirectMatch } = useSocket();
+  const { theme } = useTheme();
 
   const [gender, setGender] = useState<'male' | 'female' | 'other'>(
     user?.gender || 'other'
@@ -63,7 +65,7 @@ export default function StrangerChatLanding({ onOpenSidebar }: StrangerChatLandi
     return () => clearTimeout(directTimer);
   }, [isDirectPending, setMatchError]);
 
-  // Server cancellation sync: wait for match:left_queue event (which sets isMatching = false in store)
+  // Server cancellation sync: wait for match:left_queue event
   useEffect(() => {
     if (!isMatching && isCancelling) {
       setIsCancelling(false);
@@ -73,7 +75,7 @@ export default function StrangerChatLanding({ onOpenSidebar }: StrangerChatLandi
     }
   }, [isMatching, isCancelling]);
 
-  // Cancel timeout guard (5 seconds): in case network drops before ack arrives
+  // Cancel timeout guard (5 seconds)
   useEffect(() => {
     let cancelTimer: NodeJS.Timeout;
     if (isCancelling) {
@@ -134,7 +136,6 @@ export default function StrangerChatLanding({ onOpenSidebar }: StrangerChatLandi
     }
   };
 
-  // 1. Random Matching Start
   const handleStartRandomMatch = () => {
     if (!isConnected) {
       setMatchError('Real-time connection is offline. Reconnecting to server...');
@@ -148,7 +149,6 @@ export default function StrangerChatLanding({ onOpenSidebar }: StrangerChatLandi
     joinMatchingQueue(matchingPreference);
   };
 
-  // 2. Random Matching Cancel (Server-acknowledged)
   const handleCancelRandomMatch = () => {
     if (isCancelling) return;
     setIsCancelling(true);
@@ -156,7 +156,6 @@ export default function StrangerChatLanding({ onOpenSidebar }: StrangerChatLandi
     leaveMatchingQueue();
   };
 
-  // 3. Find by ID Flow
   const handleDirectConnect = (e: React.FormEvent) => {
     e.preventDefault();
     setInputError(null);
@@ -201,32 +200,48 @@ export default function StrangerChatLanding({ onOpenSidebar }: StrangerChatLandi
   const isActionPending = isMatching || isDirectPending || isCancelling;
 
   return (
-    <div className="flex-1 flex items-center justify-center bg-surface p-4 sm:p-6 overflow-y-auto">
-      <div className="card-brutal bg-card p-6 sm:p-8 max-w-lg w-full text-left">
+    <div className="flex-1 flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+      {/* Frosted Glass Acrylic Cupertino Card */}
+      <div
+        className="relative rounded-[28px] sm:rounded-[36px] p-6 sm:p-8 max-w-lg w-full text-left shadow-[0_24px_64px_rgba(0,0,0,0.5)] border backdrop-blur-2xl transition-all duration-300"
+        style={{
+          backgroundColor: `${theme.surfaceSolid}F2`,
+          borderColor: theme.border,
+          color: theme.text,
+        }}
+      >
         {/* Header Block */}
-        <div className="border-b-[3px] border-black pb-4 mb-5">
+        <div className="pb-4 mb-5 border-b border-white/10">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-dark">
-              Meet someone new
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+              Meet Someone New
             </h1>
-            <span className="badge-brutal text-xs font-black bg-cyan text-white">
-              STRANGER CHAT
+            <span
+              className="text-[11px] font-black tracking-wider uppercase px-3 py-1 rounded-full shadow-sm"
+              style={{
+                backgroundColor: theme.primary,
+                color: theme.outgoingText,
+              }}
+            >
+              Stranger Chat
             </span>
           </div>
 
           {/* Public Notice Banner */}
           <div
-            className="mt-3 p-3 border-2 border-black bg-yellow-100 flex items-start gap-2.5"
+            className="mt-3.5 p-3 rounded-2xl border border-white/10 bg-white/5 flex items-start gap-2.5 backdrop-blur-sm"
             role="status"
           >
             <span className="text-base select-none" aria-hidden="true">
               👁️
             </span>
-            <div className="text-xs font-bold text-dark leading-snug">
-              <span className="uppercase tracking-wider block font-black text-xs text-black">
+            <div className="text-xs leading-snug">
+              <span className="uppercase tracking-wider block font-bold text-[11px] opacity-90">
                 Public Conversation Notice
               </span>
-              Conversations are public. Other users may join as observers.
+              <span className="opacity-70">
+                Conversations are public. Other users may join as silent observers.
+              </span>
             </div>
           </div>
         </div>
@@ -234,12 +249,10 @@ export default function StrangerChatLanding({ onOpenSidebar }: StrangerChatLandi
         {/* Real-time Socket Disconnected Alert */}
         {!isConnected && (
           <div
-            className="p-3 border-2 border-black bg-warning text-dark font-bold text-xs mb-4 flex items-center gap-2"
+            className="p-3.5 rounded-2xl border border-amber-500/30 bg-amber-500/15 text-amber-200 font-semibold text-xs mb-4 flex items-center gap-2.5 backdrop-blur-md animate-pulse"
             role="alert"
           >
-            <span className="text-base" aria-hidden="true">
-              ⚠️
-            </span>
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
             <span>Real-time connection offline. Reconnecting to server...</span>
           </div>
         )}
@@ -247,14 +260,14 @@ export default function StrangerChatLanding({ onOpenSidebar }: StrangerChatLandi
         {/* Server Match Error Alert */}
         {matchError && (
           <div
-            className="p-3 border-2 border-black bg-error text-white font-bold text-xs mb-4 flex items-center justify-between gap-2"
+            className="p-3.5 rounded-2xl border border-red-500/40 bg-red-600/20 text-red-200 font-semibold text-xs mb-4 flex items-center justify-between gap-2 backdrop-blur-md"
             role="alert"
           >
             <span>{matchError}</span>
             <button
               type="button"
               onClick={() => setMatchError(null)}
-              className="font-black text-xs px-1 hover:opacity-80"
+              className="text-white/60 hover:text-white font-bold text-xs px-1.5 py-0.5 rounded-md hover:bg-white/10"
               aria-label="Dismiss error"
             >
               ✕
@@ -265,7 +278,7 @@ export default function StrangerChatLanding({ onOpenSidebar }: StrangerChatLandi
         {/* Search Cancelled Status Notice */}
         {cancelledNotice && (
           <div
-            className="p-2.5 border-2 border-black bg-surface text-xs font-bold text-dark mb-4 text-center"
+            className="p-2.5 rounded-xl border border-white/10 bg-white/5 text-xs font-semibold mb-4 text-center opacity-80"
             role="status"
           >
             {cancelledNotice}
@@ -275,39 +288,42 @@ export default function StrangerChatLanding({ onOpenSidebar }: StrangerChatLandi
         {/* Match Found State */}
         {matchedPartner && (
           <div
-            className="p-4 border-[3px] border-black bg-green-100 text-center flex flex-col items-center justify-center gap-2 mb-5"
+            className="p-4 rounded-2xl border border-emerald-500/40 bg-emerald-500/20 text-center flex flex-col items-center justify-center gap-2 mb-5 backdrop-blur-md animate-scale-in"
             role="status"
           >
-            <span className="badge-brutal bg-success text-white text-xs font-black">
-              MATCH FOUND!
+            <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500 text-white shadow-sm">
+              Match Found!
             </span>
-            <p className="font-black text-base text-dark">
+            <p className="font-extrabold text-base text-emerald-100">
               Connected with #{matchedPartner.publicId} ({matchedPartner.username})
             </p>
-            <span className="text-xs font-bold text-dim">
+            <span className="text-xs font-medium text-emerald-200/70">
               Gender: {matchedPartner.gender || 'other'} • Joining room...
             </span>
           </div>
         )}
 
         {/* Identity Section */}
-        <div className="mb-5 p-3.5 border-2 border-black bg-muted flex items-center justify-between flex-wrap gap-2">
+        <div
+          className="mb-5 p-4 rounded-2xl border border-white/10 flex items-center justify-between flex-wrap gap-3"
+          style={{ backgroundColor: `${theme.surface}99` }}
+        >
           <div>
-            <span className="text-xs font-bold text-dim uppercase tracking-wider block">
+            <span className="text-[11px] font-bold uppercase tracking-wider block opacity-60">
               Your Public Identity
             </span>
-            <div className="flex items-center gap-2 mt-0.5">
+            <div className="flex items-center gap-2 mt-1">
               {user?.publicId ? (
-                <span className="font-mono font-black text-lg text-dark">
+                <span className="font-mono font-black text-xl tracking-tight">
                   #{user.publicId}
                 </span>
               ) : (
-                <span className="badge-brutal bg-gray-200 text-dark text-xs font-black">
-                  ID UNAVAILABLE
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-white/10 opacity-70">
+                  ID Unavailable
                 </span>
               )}
               {user?.username && (
-                <span className="text-xs font-bold text-dim">
+                <span className="text-xs font-semibold opacity-70">
                   ({user.username})
                 </span>
               )}
@@ -318,69 +334,94 @@ export default function StrangerChatLanding({ onOpenSidebar }: StrangerChatLandi
             <button
               type="button"
               onClick={copyPublicId}
-              className="btn-brutal bg-card text-dark text-xs font-black px-3 py-1.5"
+              className="px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all active:scale-95 shadow-xs"
+              style={{
+                backgroundColor: copiedId ? theme.primary : `${theme.surfaceSolid}CC`,
+                borderColor: theme.border,
+                color: copiedId ? theme.outgoingText : theme.text,
+              }}
               aria-label="Copy your public ID"
             >
-              {copiedId ? 'COPIED!' : 'COPY ID'}
+              {copiedId ? '✓ Copied' : 'Copy ID'}
             </button>
           ) : null}
         </div>
 
         {/* Gender & Preference Selectors */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-4">
           <div>
             <label
               htmlFor="gender-select"
-              className="block font-black text-xs uppercase tracking-wider mb-1.5 text-dark"
+              className="block font-bold text-xs uppercase tracking-wider mb-1.5 opacity-70"
             >
               Your Gender
             </label>
-            <select
-              id="gender-select"
-              value={gender}
-              onChange={(e) =>
-                handleGenderChange(e.target.value as 'male' | 'female' | 'other')
-              }
-              disabled={savingPrefs || isActionPending}
-              className="input-brutal w-full p-2.5 font-bold text-sm bg-surface cursor-pointer disabled:opacity-60"
-            >
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
-            </select>
+            <div className="relative">
+              <select
+                id="gender-select"
+                value={gender}
+                onChange={(e) =>
+                  handleGenderChange(e.target.value as 'male' | 'female' | 'other')
+                }
+                disabled={savingPrefs || isActionPending}
+                className="w-full p-3 rounded-2xl font-semibold text-sm border outline-none cursor-pointer transition-all disabled:opacity-50 appearance-none pr-9"
+                style={{
+                  backgroundColor: `${theme.surfaceSolid}DD`,
+                  borderColor: theme.border,
+                  color: theme.text,
+                }}
+              >
+                <option value="male" className="bg-[#1c1c20] text-white">Male</option>
+                <option value="female" className="bg-[#1c1c20] text-white">Female</option>
+                <option value="other" className="bg-[#1c1c20] text-white">Other</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 opacity-60">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m6 9 6 6 6-6"/></svg>
+              </div>
+            </div>
           </div>
 
           <div>
             <label
               htmlFor="preference-select"
-              className="block font-black text-xs uppercase tracking-wider mb-1.5 text-dark"
+              className="block font-bold text-xs uppercase tracking-wider mb-1.5 opacity-70"
             >
               Looking For
             </label>
-            <select
-              id="preference-select"
-              value={matchingPreference}
-              onChange={(e) =>
-                handlePreferenceChange(e.target.value as 'male' | 'female' | 'any')
-              }
-              disabled={savingPrefs || isActionPending}
-              className="input-brutal w-full p-2.5 font-bold text-sm bg-surface cursor-pointer disabled:opacity-60"
-            >
-              <option value="any">Any Gender</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-            </select>
+            <div className="relative">
+              <select
+                id="preference-select"
+                value={matchingPreference}
+                onChange={(e) =>
+                  handlePreferenceChange(e.target.value as 'male' | 'female' | 'any')
+                }
+                disabled={savingPrefs || isActionPending}
+                className="w-full p-3 rounded-2xl font-semibold text-sm border outline-none cursor-pointer transition-all disabled:opacity-50 appearance-none pr-9"
+                style={{
+                  backgroundColor: `${theme.surfaceSolid}DD`,
+                  borderColor: theme.border,
+                  color: theme.text,
+                }}
+              >
+                <option value="any" className="bg-[#1c1c20] text-white">Any Gender</option>
+                <option value="male" className="bg-[#1c1c20] text-white">Male</option>
+                <option value="female" className="bg-[#1c1c20] text-white">Female</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 opacity-60">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m6 9 6 6 6-6"/></svg>
+              </div>
+            </div>
           </div>
         </div>
 
         {prefSaveSuccess && (
-          <div className="mb-4 text-xs font-bold text-success" role="status">
+          <div className="mb-4 text-xs font-bold text-emerald-400" role="status">
             ✓ Preferences saved
           </div>
         )}
         {prefSaveError && (
           <div
-            className="mb-4 card-brutal bg-error text-white p-2 text-xs font-bold"
+            className="mb-4 p-2.5 rounded-xl border border-red-500/30 bg-red-600/20 text-red-200 text-xs font-semibold"
             role="alert"
           >
             {prefSaveError}
@@ -390,28 +431,37 @@ export default function StrangerChatLanding({ onOpenSidebar }: StrangerChatLandi
         {/* Active Random Matching "Finding" State */}
         {isMatching ? (
           <div
-            className="p-5 border-[3px] border-black bg-yellow-50 text-center flex flex-col items-center justify-center gap-3 mb-5"
+            className="p-5 rounded-2xl border border-white/15 text-center flex flex-col items-center justify-center gap-3.5 mb-5 backdrop-blur-xl animate-fade-in"
+            style={{ backgroundColor: `${theme.surface}CC` }}
             role="status"
             aria-live="polite"
           >
-            <div className="animate-spin h-9 w-9 border-4 border-black border-t-yellow rounded-full" />
+            <div
+              className="animate-spin h-9 w-9 rounded-full border-3 border-transparent"
+              style={{
+                borderTopColor: theme.primary,
+                borderRightColor: theme.primary,
+                borderBottomColor: 'rgba(255,255,255,0.1)',
+                borderLeftColor: 'rgba(255,255,255,0.1)',
+              }}
+            />
             <div>
-              <h3 className="font-black text-base text-dark uppercase tracking-tight">
-                {isCancelling ? 'CANCELLING SEARCH...' : 'FINDING A MATCH...'}
+              <h3 className="font-extrabold text-base tracking-tight uppercase">
+                {isCancelling ? 'Cancelling Search...' : 'Finding a Compatible Partner...'}
               </h3>
-              <p className="text-xs font-bold text-dim mt-0.5">
+              <p className="text-xs font-medium opacity-70 mt-1">
                 {isCancelling
                   ? 'Confirming with server...'
-                  : `Looking for a compatible partner (${matchingPreference === 'any' ? 'Any Gender' : matchingPreference})...`}
+                  : `Searching pool for ${matchingPreference === 'any' ? 'Any Gender' : matchingPreference}...`}
               </p>
             </div>
             <button
               type="button"
               onClick={handleCancelRandomMatch}
               disabled={isCancelling}
-              className="btn-brutal bg-error text-white font-black text-xs px-6 py-2 uppercase mt-1 tracking-wider disabled:opacity-60"
+              className="h-10 px-6 rounded-xl font-bold text-xs uppercase tracking-wider bg-red-600/90 text-white shadow-md active:scale-95 transition-all hover:bg-red-600 disabled:opacity-50"
             >
-              {isCancelling ? 'CANCELLING...' : 'CANCEL SEARCH'}
+              {isCancelling ? 'Cancelling...' : 'Cancel Search'}
             </button>
           </div>
         ) : (
@@ -421,29 +471,32 @@ export default function StrangerChatLanding({ onOpenSidebar }: StrangerChatLandi
               type="button"
               onClick={handleStartRandomMatch}
               disabled={!isConnected || isActionPending}
-              className="btn-brutal w-full py-3.5 font-black text-sm uppercase tracking-wider text-dark flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ background: 'var(--bg-accent)' }}
+              className="w-full py-3.5 px-6 rounded-2xl font-extrabold text-sm tracking-wide flex items-center justify-center gap-2 shadow-lg active:scale-98 transition-all hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{
+                backgroundColor: theme.primary,
+                color: theme.outgoingText,
+              }}
             >
               <span>⚡</span>
-              <span>Random Match</span>
+              <span>Find Random Partner</span>
             </button>
           </div>
         )}
 
         {/* Divider */}
-        <div className="flex items-center gap-3 mb-5">
-          <div className="flex-1 h-[2px] bg-black opacity-20" />
-          <span className="text-xs font-black uppercase text-dim tracking-wider">
-            OR FIND BY ID
+        <div className="flex items-center gap-3 mb-5 opacity-40">
+          <div className="flex-1 h-px bg-white" />
+          <span className="text-[11px] font-black uppercase tracking-wider">
+            Or Find by ID
           </span>
-          <div className="flex-1 h-[2px] bg-black opacity-20" />
+          <div className="flex-1 h-px bg-white" />
         </div>
 
         {/* Action: Find by ID */}
         <form onSubmit={handleDirectConnect} className="flex flex-col gap-2">
           <label
             htmlFor="stranger-id-input"
-            className="block font-black text-xs uppercase tracking-wider text-dark"
+            className="block font-bold text-xs uppercase tracking-wider opacity-70"
           >
             Enter 4–6 Digit Public ID
           </label>
@@ -461,23 +514,31 @@ export default function StrangerChatLanding({ onOpenSidebar }: StrangerChatLandi
                 if (inputError) setInputError(null);
               }}
               placeholder="e.g. 4819"
-              className="input-brutal flex-1 p-2.5 font-mono font-bold text-sm bg-surface disabled:opacity-60"
+              className="flex-1 p-3 rounded-2xl font-mono font-bold text-sm border outline-none transition-all disabled:opacity-50"
+              style={{
+                backgroundColor: `${theme.surfaceSolid}CC`,
+                borderColor: theme.border,
+                color: theme.text,
+              }}
               aria-describedby={inputError ? 'stranger-id-error' : undefined}
             />
             <button
               type="submit"
               disabled={isActionPending || !isConnected || !targetIdInput.trim()}
-              className="btn-brutal px-5 py-2.5 font-black text-xs uppercase tracking-wider text-white disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ background: 'var(--purple)' }}
+              className="px-5 py-3 rounded-2xl font-bold text-xs tracking-wider transition-all active:scale-95 disabled:opacity-40 shadow-md"
+              style={{
+                backgroundColor: theme.primary,
+                color: theme.outgoingText,
+              }}
             >
-              {isDirectPending ? 'CONNECTING...' : 'CONNECT'}
+              {isDirectPending ? 'Connecting...' : 'Connect'}
             </button>
           </div>
 
           {inputError && (
             <div
               id="stranger-id-error"
-              className="card-brutal bg-error text-white p-2.5 mt-2 font-bold text-xs"
+              className="p-2.5 rounded-xl border border-red-500/40 bg-red-600/20 text-red-200 font-semibold text-xs mt-2"
               role="alert"
             >
               {inputError}
@@ -485,8 +546,14 @@ export default function StrangerChatLanding({ onOpenSidebar }: StrangerChatLandi
           )}
 
           {isDirectPending && (
-            <div className="p-2.5 border-2 border-black bg-surface text-xs font-bold text-dark mt-2 flex items-center gap-2">
-              <div className="animate-spin h-3.5 w-3.5 border-2 border-black border-t-purple rounded-full" />
+            <div className="p-3 rounded-2xl border border-white/10 bg-white/5 text-xs font-semibold mt-2 flex items-center gap-2.5 backdrop-blur-sm">
+              <div
+                className="animate-spin h-3.5 w-3.5 rounded-full border-2 border-transparent"
+                style={{
+                  borderTopColor: theme.primary,
+                  borderRightColor: theme.primary,
+                }}
+              />
               <span>Contacting user #{targetIdInput}... Waiting for response.</span>
             </div>
           )}
@@ -494,11 +561,11 @@ export default function StrangerChatLanding({ onOpenSidebar }: StrangerChatLandi
 
         {/* Secondary Navigation Helper */}
         {onOpenSidebar && (
-          <div className="mt-6 pt-4 border-t-[2px] border-black border-dashed text-center">
+          <div className="mt-6 pt-4 border-t border-white/10 text-center">
             <button
               type="button"
               onClick={onOpenSidebar}
-              className="text-xs font-bold text-dim underline hover:text-black uppercase tracking-wider"
+              className="text-xs font-bold opacity-60 hover:opacity-100 transition-opacity tracking-wider hover:underline"
             >
               Browse existing chat channels →
             </button>

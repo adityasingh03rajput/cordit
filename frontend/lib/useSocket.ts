@@ -5,13 +5,24 @@ import { io, Socket } from 'socket.io-client';
 import { useStore } from './store';
 import type { Message, FileAttachment, Suggestion } from './types';
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';
+const getSocketUrl = () => {
+  if (typeof window !== 'undefined') {
+    if (process.env.NEXT_PUBLIC_BACKEND_URL && !process.env.NEXT_PUBLIC_BACKEND_URL.includes('localhost')) {
+      return process.env.NEXT_PUBLIC_BACKEND_URL;
+    }
+    const host = window.location.hostname;
+    const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+    return `${protocol}//${host}:3000`;
+  }
+  return process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';
+};
 
 let globalSocket: Socket | null = null;
 let currentSocketToken: string | null = null;
 let socketListenersAttached = false;
 
 const getSocket = (token: string) => {
+  const socketUrl = getSocketUrl();
   if (!globalSocket || !globalSocket.connected || currentSocketToken !== token) {
     if (globalSocket) {
       globalSocket.disconnect();
@@ -19,12 +30,12 @@ const getSocket = (token: string) => {
       socketListenersAttached = false;
     }
     currentSocketToken = token;
-    globalSocket = io(SOCKET_URL, {
+    globalSocket = io(socketUrl, {
       auth: { token },
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: 10,
     });
   }
   return globalSocket;
@@ -51,9 +62,10 @@ export const useSocket = () => {
   } = useStore();
 
   useEffect(() => {
-    if (!user?.token) return;
+    const token = user?.token || (typeof window !== 'undefined' ? localStorage.getItem('token') : null);
+    if (!token) return;
 
-    const socket = getSocket(user.token);
+    const socket = getSocket(token);
     socketRef.current = socket;
 
     if (!socketListenersAttached) {
@@ -61,6 +73,11 @@ export const useSocket = () => {
 
       socket.on('connect', () => {
         setConnected(true);
+      });
+
+      socket.on('connect_error', (err) => {
+        console.warn('Socket connect_error:', err?.message || err);
+        setConnected(false);
       });
 
       socket.on('disconnect', () => {
