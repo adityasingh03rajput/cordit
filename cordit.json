@@ -216,14 +216,53 @@
     "engine": "Dynamic Wallpaper-Driven Glassmorphism (frontend/lib/ThemeContext.tsx, themeRegistry.ts)",
     "surfaces": "Ultra-clear frosted acrylic (backdrop-blur-md/xl, 12-35% opacity, border-white/15)",
     "gallery": [
-      { "id": "cherry-blossom", "title": "Moonlit Cherry Blossom Mountain Retreat", "tone": "violet_night" },
-      { "id": "crimson-wanderer", "title": "Crimson Sumi-e Sunset Wanderer", "tone": "crimson_paper" },
-      { "id": "anime-sunset", "title": "Anime Sunset Serenity with Torii", "tone": "golden_amber" },
-      { "id": "samurai-moon", "title": "Samurai Under the Violet Moon", "tone": "neon_purple" },
-      { "id": "aurora-valley", "title": "Aurora Over the Snowy Valley", "tone": "emerald_cyan" },
-      { "id": "starlit-valley", "title": "Starlit Valley Beneath the Golden Tree", "tone": "deep_midnight" },
-      { "id": "crimson-mist", "title": "Crimson Mist Torii Landscape", "tone": "ruby_dark" },
-      { "id": "headphones-red-moon", "title": "Headphones Beneath the Red Moon", "tone": "minimal_black_red" }
-    ]
+      {
+        "id": "cherry-blossom",
+        "title": "Moonlit Cherry Blossom Mountain Retreat",
+        "tone": "violet_night"
+      },
+      {
+        "id": "crimson-wanderer",
+        "title": "Crimson Sumi-e Sunset Wanderer",
+        "tone": "crimson_paper"
+      },
+      {
+        "id": "anime-sunset",
+        "title": "Anime Sunset Serenity with Torii",
+        "tone": "golden_amber"
+      },
+      {
+        "id": "samurai-moon",
+        "title": "Samurai Under the Violet Moon",
+        "tone": "neon_purple"
+      },
+      {
+        "id": "aurora-valley",
+        "title": "Aurora Over the Snowy Valley",
+        "tone": "emerald_cyan"
+      },
+      {
+        "id": "starlit-valley",
+        "title": "Starlit Valley Beneath the Golden Tree",
+        "tone": "deep_midnight"
+      },
+      {
+        "id": "crimson-mist",
+        "title": "Crimson Mist Torii Landscape",
+        "tone": "ruby_dark"
+      },
+      {
+        "id": "headphones-red-moon",
+        "title": "Headphones Beneath the Red Moon",
+        "tone": "minimal_black_red"
+      }
+    ],
+    "mobile_experience": {
+      "design_language": "Apple iOS Cupertino Human Interface Guidelines",
+      "dock": "Floating Frosted Glass Pill Dock (MobileAppleDock.tsx)",
+      "drawers": "iOS Cupertino Bottom Sheet with Grab Handle & Blur Backdrop (MobileAppleSheet.tsx)",
+      "message_bubbles": "iMessage-style squircle bubbles with responsive width",
+      "composer": "Rounded-full iOS style action bar with circular send button"
+    }
   }
 }

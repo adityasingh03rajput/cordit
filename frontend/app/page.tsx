@@ -18,6 +18,8 @@ import { useTheme } from '@/lib/ThemeContext';
 import TopHeader from '@/components/TopHeader';
 import RightSidebar from '@/components/RightSidebar';
 import { MasterFeedTile } from '@/components/MasterFeedTile';
+import MobileAppleDock from '@/components/MobileAppleDock';
+import MobileAppleSheet from '@/components/MobileAppleSheet';
 
 export default function Home() {
   const router = useRouter();
@@ -30,6 +32,7 @@ export default function Home() {
     typingUsers,
     userRoleInCurrentRoom,
     matchedPartner,
+    suggestions,
     setSuggestions,
     setCurrentRoom,
     setRooms,
@@ -49,6 +52,7 @@ export default function Home() {
   const [showRoomsDrawer, setShowRoomsDrawer] = useState(false);
   const [activeNavTab, setActiveNavTab] = useState<'home' | 'stranger_chat' | 'rooms' | 'voice_rooms' | 'library'>('stranger_chat');
   const [showWallpaperModal, setShowWallpaperModal] = useState(false);
+  const [mobileSheet, setMobileSheet] = useState<'voice' | 'suggestions' | 'rooms' | null>(null);
   const { theme, activeWallpaper, setThemeByWallpaper } = useTheme();
 
   // Voice Chat States
@@ -361,26 +365,28 @@ export default function Home() {
       <TopHeader onOpenWallpapers={() => setShowWallpaperModal(true)} />
 
       {/* ── MAIN LAYOUT (below-header, height: calc(100vh - 64px), grid: 220px 1fr 300px, gap: 16px, p: 16px) ── */}
-      <main className="flex-1 grid grid-cols-1 md:grid-cols-[72px_minmax(0,1fr)] lg:grid-cols-[220px_minmax(0,1fr)_300px] gap-4 p-4 min-h-0 overflow-hidden relative z-10">
-        {/* ── 1. LEFT NAVIGATION PANEL ── */}
-        <LeftNavigation
-          activeTab={currentRoom?.roomType === 'stranger_chat' ? 'stranger_chat' : activeNavTab}
-          onSelectTab={(tab) => {
-            if (tab === 'library') {
-              setShowWallpaperModal(true);
-            } else {
-              setActiveNavTab(tab as any);
-            }
-          }}
-          onOpenRooms={() => setShowRoomsDrawer(true)}
-          onOpenMatch={() => setShowMatchingModal(true)}
-          onOpenWallpapers={() => setShowWallpaperModal(true)}
-        />
+      <main className="flex-1 grid grid-cols-1 md:grid-cols-[72px_minmax(0,1fr)] lg:grid-cols-[220px_minmax(0,1fr)_300px] gap-0 sm:gap-4 p-0 sm:p-4 min-h-0 overflow-hidden relative z-10">
+        {/* ── 1. LEFT NAVIGATION PANEL (Hidden on Mobile) ── */}
+        <div className="hidden md:flex flex-col h-full">
+          <LeftNavigation
+            activeTab={currentRoom?.roomType === 'stranger_chat' ? 'stranger_chat' : activeNavTab}
+            onSelectTab={(tab) => {
+              if (tab === 'library') {
+                setShowWallpaperModal(true);
+              } else {
+                setActiveNavTab(tab as any);
+              }
+            }}
+            onOpenRooms={() => setShowRoomsDrawer(true)}
+            onOpenMatch={() => setShowMatchingModal(true)}
+            onOpenWallpapers={() => setShowWallpaperModal(true)}
+          />
+        </div>
 
         {/* ── 2. CENTER CHAT VIEWPORT ── */}
         {currentRoom ? (
           <div
-            className="flex-1 rounded-[24px] border shadow-[0_8px_24px_rgba(33,29,27,0.10)] flex flex-col min-h-0 min-w-0 overflow-hidden relative transition-colors duration-300 backdrop-blur-[10px]"
+            className="flex-1 rounded-none sm:rounded-[24px] border-0 sm:border shadow-[0_8px_24px_rgba(33,29,27,0.10)] flex flex-col min-h-0 min-w-0 overflow-hidden relative transition-colors duration-300 backdrop-blur-[10px]"
             style={{
               backgroundColor: theme.surface,
               borderColor: theme.border,
@@ -388,7 +394,7 @@ export default function Home() {
           >
             {/* Chat Header (height: 64px, padding: 0 20px, borderBottom) */}
             <div
-              className="h-16 px-5 border-b flex items-center justify-between select-none flex-shrink-0 transition-colors duration-300"
+              className="h-14 sm:h-16 px-3.5 sm:px-5 border-b flex items-center justify-between select-none flex-shrink-0 transition-colors duration-300 backdrop-blur-xl"
               style={{
                 backgroundColor: theme.surfaceSolid,
                 borderColor: theme.border,
@@ -397,9 +403,9 @@ export default function Home() {
               <div className="flex items-center gap-3 flex-wrap">
                 {/* Title with Dynamic Underline */}
                 <div className="flex flex-col">
-                  <h2 className="text-lg font-bold tracking-tight flex items-center gap-1.5" style={{ color: theme.text }}>
+                  <h2 className="text-sm sm:text-lg font-bold tracking-tight flex items-center gap-1" style={{ color: theme.text }}>
                     <span>#</span>
-                    <span>Stranger Chat</span>
+                    <span className="truncate max-w-[130px] sm:max-w-none">Stranger Chat</span>
                   </h2>
                   <div className="h-[2.5px] w-full rounded-full mt-0.5" style={{ backgroundColor: theme.primary }} />
                 </div>
@@ -418,7 +424,7 @@ export default function Home() {
 
                 {/* PUBLIC ROOM Badge */}
                 <div
-                  className="text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-2xs"
+                  className="text-[9px] sm:text-[11px] font-bold px-2 sm:px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-2xs hidden xs:flex"
                   style={{
                     backgroundColor: theme.primary,
                     color: theme.outgoingText,
@@ -504,7 +510,7 @@ export default function Home() {
             )}
 
             {/* Scrollable Message Timeline (padding: 24px, gap: 18px, overflowY: auto) */}
-            <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col min-h-0">
+            <div className="flex-1 overflow-y-auto px-3 sm:px-6 py-3 sm:py-4 flex flex-col min-h-0">
               {/* Date Divider (Today) */}
               <div className="flex items-center justify-center my-2 relative px-8 flex-shrink-0">
                 <div className="absolute inset-x-8 h-px" style={{ backgroundColor: theme.border }} />
@@ -590,10 +596,20 @@ export default function Home() {
               </div>
             )}
 
-            {/* Composer */}
+            {/* Mobile Apple Dock: Quick Actions strip */}
+            <MobileAppleDock
+              onOpenVoice={() => setMobileSheet('voice')}
+              onOpenSuggestions={() => setMobileSheet('suggestions')}
+              onOpenRooms={() => setMobileSheet('rooms')}
+              onOpenMatch={() => setShowMatchingModal(true)}
+              isInVoice={isInVoice}
+              suggestionsCount={suggestions.length > 0 ? suggestions.length : 3}
+            />
+
+            {/* Composer (Apple iMessage style) */}
             <form
               onSubmit={handleSendMessage}
-              className="p-[16px_20px] flex items-center gap-3 border-t flex-shrink-0 transition-colors duration-300"
+              className="p-2 sm:p-[16px_20px] flex items-center gap-2 sm:gap-3 border-t flex-shrink-0 transition-colors duration-300 backdrop-blur-xl"
               style={{
                 backgroundColor: theme.surfaceSolid,
                 borderColor: theme.border,
@@ -609,7 +625,7 @@ export default function Home() {
               />
 
               <div
-                className="flex-1 h-[48px] border rounded-2xl px-4 flex items-center gap-3 shadow-2xs transition-colors"
+                className="flex-1 h-[42px] sm:h-[48px] border rounded-full sm:rounded-2xl px-3 sm:px-4 flex items-center gap-2 sm:gap-3 shadow-2xs transition-colors backdrop-blur-md"
                 style={{
                   backgroundColor: theme.incomingBg,
                   borderColor: theme.border,
@@ -669,7 +685,7 @@ export default function Home() {
                   (!messageText.trim() && !pendingFile) ||
                   userRoleInCurrentRoom === 'observer'
                 }
-                className="w-[48px] h-[48px] active:scale-95 rounded-2xl flex items-center justify-center transition-all shadow-md disabled:cursor-not-allowed disabled:opacity-40 flex-shrink-0 hover:scale-102"
+                className="w-[42px] sm:w-[48px] h-[42px] sm:h-[48px] active:scale-95 rounded-full sm:rounded-2xl flex items-center justify-center transition-all shadow-md disabled:cursor-not-allowed disabled:opacity-30 flex-shrink-0 hover:scale-102"
                 style={{
                   backgroundColor: theme.primary,
                   color: theme.outgoingText,
@@ -707,14 +723,30 @@ export default function Home() {
 
         {/* ── 3. RIGHT SIDEBAR ── */}
         {currentRoom && (
-          <RightSidebar
-            onJoinVoice={handleJoinVoice}
-            onLeaveVoice={handleLeaveVoice}
-            isInVoice={isInVoice}
-            connectingVoice={connectingVoice}
-          />
+          <div className="hidden lg:flex flex-col h-full min-h-0">
+            <RightSidebar
+              onJoinVoice={handleJoinVoice}
+              onLeaveVoice={handleLeaveVoice}
+              isInVoice={isInVoice}
+              connectingVoice={connectingVoice}
+            />
+          </div>
         )}
       </main>
+
+      {/* ── APPLE MOBILE BOTTOM SHEET (Voice, Suggestions, Rooms) ── */}
+      <MobileAppleSheet
+        isOpen={mobileSheet !== null}
+        activeSheet={mobileSheet}
+        onClose={() => setMobileSheet(null)}
+        isInVoice={isInVoice}
+        connectingVoice={connectingVoice}
+        onJoinVoice={handleJoinVoice}
+        onLeaveVoice={handleLeaveVoice}
+        rooms={rooms}
+        currentRoomId={currentRoom?._id}
+        onSelectRoom={selectRoom}
+      />
 
       {/* ── WALLPAPER & THEME GALLERY MODAL ── */}
       <WallpaperModal

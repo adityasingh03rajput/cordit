@@ -18,41 +18,42 @@ export default function TopHeader({ onOpenWallpapers }: TopHeaderProps) {
 
   return (
     <header
-      className="h-16 w-full px-6 flex items-center justify-between select-none backdrop-blur-md border-b z-20 flex-shrink-0 transition-colors duration-300"
+      className="h-14 sm:h-16 w-full px-3.5 sm:px-6 flex items-center justify-between select-none backdrop-blur-2xl border-b z-20 flex-shrink-0 transition-colors duration-300"
       style={{
-        backgroundColor: theme.surface,
+        backgroundColor: `${theme.surfaceSolid}E6`,
         borderColor: theme.border,
       }}
     >
-      {/* ── LEFT: LOGO (width: 180px) ── */}
-      <div className="w-[180px] flex items-center gap-3">
-        <div className="flex items-center gap-2.5">
+      {/* ── LEFT: APPLE SQUIRCLE BRAND & STATUS ── */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2">
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center shadow-xs transition-colors"
+            className="w-8 h-8 rounded-full flex items-center justify-center shadow-sm transition-transform active:scale-95"
             style={{ backgroundColor: theme.primary }}
           >
             <span
-              className="font-serif font-black text-lg leading-none"
+              className="font-serif font-black text-base leading-none"
               style={{ color: theme.outgoingText }}
             >
               C
             </span>
           </div>
           <span
-            className="font-serif font-bold text-2xl tracking-tight transition-colors"
+            className="font-serif font-bold text-xl sm:text-2xl tracking-tight transition-colors"
             style={{ color: theme.text }}
           >
             Cordit
           </span>
         </div>
 
+        {/* Live Status Beacon */}
         <div className="flex items-center gap-1.5 ml-1">
           <span
             className={`w-2 h-2 rounded-full ${isConnected ? 'animate-pulse' : 'opacity-40'}`}
             style={{ backgroundColor: isConnected ? theme.primary : theme.textMuted }}
           />
           <span
-            className="text-[10px] font-black tracking-widest uppercase transition-colors"
+            className="text-[9px] sm:text-[10px] font-black tracking-widest uppercase transition-colors hidden xs:inline"
             style={{ color: isConnected ? theme.primary : theme.textMuted }}
           >
             {isConnected ? 'LIVE' : 'OFFLINE'}
@@ -60,14 +61,14 @@ export default function TopHeader({ onOpenWallpapers }: TopHeaderProps) {
         </div>
       </div>
 
-      {/* ── RIGHT: ACTIONS (gap: 12px) ── */}
-      <div className="flex items-center gap-3">
-        {/* Wallpaper & Theme Gallery Trigger */}
+      {/* ── RIGHT: APPLE FROSTED ACTIONS ── */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* Wallpaper & Theme Trigger */}
         <button
           onClick={onOpenWallpapers}
-          className="border text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-2xs transition-all hover:scale-102"
+          className="border text-xs font-bold px-2.5 sm:px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-xs transition-transform active:scale-95 backdrop-blur-md"
           style={{
-            backgroundColor: theme.surfaceSolid,
+            backgroundColor: `${theme.surfaceSolid}CC`,
             borderColor: theme.border,
             color: theme.text,
           }}
@@ -79,7 +80,7 @@ export default function TopHeader({ onOpenWallpapers }: TopHeaderProps) {
 
         {/* Notification Bell */}
         <div
-          className="relative cursor-pointer p-2 transition-colors rounded-xl hover:opacity-80"
+          className="relative cursor-pointer p-1.5 sm:p-2 transition-transform active:scale-95 rounded-full hover:opacity-80"
           style={{ color: theme.text }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -87,7 +88,7 @@ export default function TopHeader({ onOpenWallpapers }: TopHeaderProps) {
             <path d="M13.73 21a2 2 0 0 1-3.46 0" />
           </svg>
           <span
-            className="absolute top-1 right-1 text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center leading-none shadow-xs"
+            className="absolute top-1 right-1 text-[8px] sm:text-[9px] font-black w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full flex items-center justify-center leading-none shadow-xs"
             style={{ backgroundColor: theme.primary, color: theme.outgoingText }}
           >
             1
@@ -98,33 +99,36 @@ export default function TopHeader({ onOpenWallpapers }: TopHeaderProps) {
         <div className="relative">
           <div
             onClick={() => setShowProfileMenu(!showProfileMenu)}
-            className="border rounded-full px-3 py-1 flex items-center gap-2 shadow-2xs cursor-pointer hover:opacity-90 transition-all"
+            className="border rounded-full px-2.5 sm:px-3 py-1 flex items-center gap-1.5 sm:gap-2 shadow-xs cursor-pointer hover:opacity-90 active:scale-95 transition-all backdrop-blur-md"
             style={{
-              backgroundColor: theme.surfaceSolid,
+              backgroundColor: `${theme.surfaceSolid}CC`,
               borderColor: theme.border,
             }}
           >
             <AnimeAvatar variant="boy" size="sm" />
 
             <span className="font-bold text-xs" style={{ color: theme.text }}>
-              #{user?.publicId || '7368'} • {user?.username ? user.username.charAt(0).toUpperCase() + user.username.slice(1) : 'Admin'}
+              #{user?.publicId || '7368'}
+              <span className="hidden sm:inline">
+                {' '}• {user?.username ? user.username.charAt(0).toUpperCase() + user.username.slice(1) : 'Admin'}
+              </span>
             </span>
 
-            <span className="text-xs" style={{ color: theme.textMuted }}>⌄</span>
+            <span className="text-xs opacity-60" style={{ color: theme.textMuted }}>⌄</span>
           </div>
 
           {/* Profile Dropdown Menu */}
           {showProfileMenu && (
             <div
-              className="absolute right-0 mt-2 w-48 border rounded-xl shadow-xl py-2 z-50 text-xs font-medium"
+              className="absolute right-0 mt-2 w-48 border rounded-2xl shadow-2xl py-2 z-50 text-xs font-medium backdrop-blur-2xl animate-fade-in"
               style={{
-                backgroundColor: theme.surfaceSolid,
+                backgroundColor: `${theme.surfaceSolid}F2`,
                 borderColor: theme.border,
                 color: theme.text,
               }}
             >
               <div
-                className="px-3 py-1.5 border-b font-bold text-[10px] uppercase"
+                className="px-3 py-1.5 border-b font-bold text-[10px] uppercase opacity-70"
                 style={{
                   borderColor: theme.border,
                   color: theme.textMuted,
@@ -138,7 +142,7 @@ export default function TopHeader({ onOpenWallpapers }: TopHeaderProps) {
                     router.push('/admin');
                     setShowProfileMenu(false);
                   }}
-                  className="w-full text-left px-3 py-2 font-bold hover:opacity-80"
+                  className="w-full text-left px-3 py-2 font-bold hover:opacity-80 transition-opacity"
                   style={{ color: theme.text }}
                 >
                   Admin Dashboard
@@ -149,7 +153,7 @@ export default function TopHeader({ onOpenWallpapers }: TopHeaderProps) {
                   logout();
                   setShowProfileMenu(false);
                 }}
-                className="w-full text-left px-3 py-2 font-bold hover:opacity-80"
+                className="w-full text-left px-3 py-2 font-bold hover:opacity-80 transition-opacity"
                 style={{ color: theme.primary }}
               >
                 Log Out

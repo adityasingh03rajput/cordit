@@ -189,7 +189,7 @@ export const MasterFeedTile = memo(function MasterFeedTile({
             <AnimeAvatar variant={isMockGirlReplyRight ? 'girl' : 'boy'} />
           </div>
 
-          <div className="relative max-w-[72%]">
+          <div className="relative max-w-[85%] sm:max-w-[72%]">
             <div
               className="rounded-[16px] px-4 py-3 shadow-sm text-sm font-medium leading-relaxed break-words transition-colors duration-300"
               style={{
@@ -235,7 +235,7 @@ export const MasterFeedTile = memo(function MasterFeedTile({
           </span>
         </div>
 
-        <div className="relative max-w-[72%]">
+        <div className="relative max-w-[85%] sm:max-w-[72%]">
           <div
             className="border rounded-[16px] px-4 py-3 shadow-sm text-sm font-medium leading-relaxed break-words transition-colors duration-300"
             style={{
