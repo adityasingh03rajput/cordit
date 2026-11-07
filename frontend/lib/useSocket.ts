@@ -11,6 +11,12 @@ const getSocketUrl = () => {
       return process.env.NEXT_PUBLIC_BACKEND_URL;
     }
     const host = window.location.hostname;
+    if (host.includes('lhr.life') || host.includes('localhost.run')) {
+      return 'https://758d1643db99b8.lhr.life';
+    }
+    if (host.includes('pinggy')) {
+      return 'https://qunch-2405-201-3003-588c-8c31-88a3-fb98-9717.free.pinggy.net';
+    }
     const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
     return `${protocol}//${host}:3000`;
   }
