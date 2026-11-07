@@ -68,6 +68,7 @@ export const useSocket = () => {
     addSuggestion,
     updateSuggestionVisibility,
     updateCurrentRoomObserverCount,
+    updateRoomName,
   } = useStore();
 
   useEffect(() => {
@@ -141,6 +142,11 @@ export const useSocket = () => {
         } catch (e) {
           console.error('Failed to refresh rooms on update:', e);
         }
+      });
+
+      // Room renamed in real-time
+      socket.on('room:renamed', (data: { roomId: string; name: string }) => {
+        updateRoomName(data.roomId, data.name);
       });
 
       // Matching Socket Events
@@ -256,6 +262,13 @@ export const useSocket = () => {
     }
   };
 
+  const renameRoom = (roomId: string, name: string) => {
+    const socket = socketRef.current || globalSocket;
+    if (socket?.connected) {
+      socket.emit('room:rename', { roomId, name });
+    }
+  };
+
   return {
     sendMessage,
     startTyping,
@@ -265,6 +278,7 @@ export const useSocket = () => {
     requestDirectMatch,
     sendSuggestion,
     toggleSuggestionVisibility,
+    renameRoom,
     socket: globalSocket,
   };
 };

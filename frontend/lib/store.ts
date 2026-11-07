@@ -40,6 +40,7 @@ interface AppState {
   updateSuggestionVisibility: (suggestionId: string, visible: boolean) => void;
   setShowSuggestions: (show: boolean) => void;
   updateCurrentRoomObserverCount: (count: number) => void;
+  updateRoomName: (roomId: string, name: string) => void;
   logout: () => void;
 }
 
@@ -119,6 +120,15 @@ export const useStore = create<AppState>((set) => ({
         currentRoom: { ...state.currentRoom, observerCount },
       };
     }),
+
+  updateRoomName: (roomId, name) =>
+    set((state) => ({
+      currentRoom:
+        state.currentRoom?._id === roomId
+          ? { ...state.currentRoom, name }
+          : state.currentRoom,
+      rooms: state.rooms.map((r) => (r._id === roomId ? { ...r, name } : r)),
+    })),
 
   logout: () => {
     if (typeof window !== 'undefined') {

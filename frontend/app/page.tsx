@@ -42,10 +42,12 @@ export default function Home() {
     logout,
   } = useStore();
 
-  const { sendMessage, startTyping, stopTyping, socket } = useSocket();
+  const { sendMessage, startTyping, stopTyping, renameRoom, socket } = useSocket();
 
   const [messageText, setMessageText] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isEditingRoomName, setIsEditingRoomName] = useState(false);
+  const [roomNameInput, setRoomNameInput] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
   const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [showMatchingModal, setShowMatchingModal] = useState(false);
@@ -129,6 +131,20 @@ export default function Home() {
       console.error('Failed to join room:', error);
     }
   }, [rooms, setCurrentRoom, setMessages]);
+
+  // Rename Room Handler (Both participants can rename)
+  const handleStartEditRoomName = () => {
+    if (userRoleInCurrentRoom === 'observer') return;
+    setRoomNameInput(currentRoom?.name || '');
+    setIsEditingRoomName(true);
+  };
+
+  const handleSaveRoomName = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentRoom || !roomNameInput.trim()) return;
+    renameRoom(currentRoom._id, roomNameInput.trim());
+    setIsEditingRoomName(false);
+  };
 
   // Auth redirect and user state restoration
   useEffect(() => {
@@ -448,14 +464,72 @@ export default function Home() {
               }}
             >
               <div className="flex items-center gap-3 flex-wrap">
-                {/* Title with Dynamic Underline */}
-                <div className="flex flex-col">
-                  <h2 className="text-sm sm:text-lg font-bold tracking-tight flex items-center gap-1" style={{ color: theme.text }}>
-                    <span>#</span>
-                    <span className="truncate max-w-[130px] sm:max-w-none">Stranger Chat</span>
-                  </h2>
-                  <div className="h-[2.5px] w-full rounded-full mt-0.5" style={{ backgroundColor: theme.primary }} />
-                </div>
+                {/* Title with Dynamic Underline and Inline Rename */}
+                {isEditingRoomName ? (
+                  <form onSubmit={handleSaveRoomName} className="flex items-center gap-1.5">
+                    <span className="font-bold text-sm sm:text-base opacity-70">#</span>
+                    <input
+                      type="text"
+                      value={roomNameInput}
+                      onChange={(e) => setRoomNameInput(e.target.value)}
+                      maxLength={45}
+                      autoFocus
+                      placeholder="Room name..."
+                      className="px-2.5 py-1 rounded-xl text-xs sm:text-sm font-bold border outline-none max-w-[140px] sm:max-w-[220px]"
+                      style={{
+                        backgroundColor: `${theme.surfaceSolid}F2`,
+                        borderColor: theme.border,
+                        color: theme.text,
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      disabled={!roomNameInput.trim()}
+                      className="px-2 py-1 rounded-lg text-xs font-bold shadow-xs transition-transform active:scale-95 disabled:opacity-40"
+                      style={{
+                        backgroundColor: theme.primary,
+                        color: theme.outgoingText,
+                      }}
+                      title="Save room name"
+                    >
+                      ✓
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingRoomName(false)}
+                      className="px-2 py-1 rounded-lg text-xs font-bold border hover:bg-white/10 transition-colors"
+                      style={{
+                        borderColor: theme.border,
+                        color: theme.text,
+                      }}
+                      title="Cancel"
+                    >
+                      ✕
+                    </button>
+                  </form>
+                ) : (
+                  <div
+                    className="flex flex-col group cursor-pointer"
+                    onClick={handleStartEditRoomName}
+                    title={userRoleInCurrentRoom === 'observer' ? 'Observers cannot rename' : 'Click to rename room'}
+                  >
+                    <h2 className="text-sm sm:text-lg font-bold tracking-tight flex items-center gap-1.5" style={{ color: theme.text }}>
+                      <span>#</span>
+                      <span className="truncate max-w-[130px] sm:max-w-[260px] hover:underline">
+                        {currentRoom?.name || 'Stranger Chat'}
+                      </span>
+                      {userRoleInCurrentRoom !== 'observer' && (
+                        <span
+                          className="opacity-40 group-hover:opacity-100 transition-opacity text-xs"
+                          title="Rename room"
+                        >
+                          ✎
+                        </span>
+                      )}
+                    </h2>
+                    <div className="h-[2.5px] w-full rounded-full mt-0.5" style={{ backgroundColor: theme.primary }} />
+                  </div>
+                )}
 
                 {/* Partners Tag */}
                 <div

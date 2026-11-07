@@ -572,6 +572,76 @@ export const initializeSocket = (httpServer: HTTPServer) => {
       });
     });
 
+    // Rename Room handler (Both participants in stranger chat or room members can rename)
+    socket.on('room:rename', async (data: { roomId: string; name: string }) => {
+      try {
+        const { roomId, name } = data;
+        const cleanName = (name || '').trim();
+
+        if (!cleanName || cleanName.length < 1 || cleanName.length > 50) {
+          socket.emit('error', { message: 'Room name must be between 1 and 50 characters' });
+          return;
+        }
+
+        const room = await Room.findOne({ _id: roomId, isDeleted: false });
+        if (!room) {
+          socket.emit('error', { message: 'Room not found' });
+          return;
+        }
+
+        // Validate user is a participant or member
+        const isParticipant =
+          room.participants?.some((p) => p.toString() === socket.userDocId) ||
+          room.activeUsers.some((u) => u.username === socket.username) ||
+          socket.role === 'admin';
+
+        if (!isParticipant) {
+          socket.emit('error', { message: 'Only room participants can rename the room' });
+          return;
+        }
+
+        room.name = cleanName;
+        await room.save();
+
+        // Create a system message announcing the rename
+        const User = (await import('../models/user')).default;
+        const systemUser = await User.findOne({ role: 'admin' });
+        const systemMessage = new Message({
+          roomId: room._id,
+          userId: systemUser?._id || socket.userDocId,
+          username: 'System',
+          text: `${socket.username} (#${socket.publicId}) renamed the room to "${cleanName}"`,
+          messageType: 'system',
+        });
+        await systemMessage.save();
+
+        // Broadcast to all participants and observers in this room
+        io.to(roomId).emit('room:renamed', {
+          roomId: room._id.toString(),
+          name: cleanName,
+          renamedBy: socket.username,
+          renamedByPublicId: socket.publicId,
+        });
+
+        // Broadcast system message
+        io.to(roomId).emit('new_message', {
+          _id: systemMessage._id,
+          roomId: systemMessage.roomId,
+          userId: systemMessage.userId,
+          username: systemMessage.username,
+          text: systemMessage.text,
+          messageType: systemMessage.messageType,
+          createdAt: systemMessage.createdAt,
+        });
+
+        // Broadcast global rooms updated so channel lists update
+        io.emit('rooms_updated');
+      } catch (error) {
+        logger.error('Error renaming room:', error);
+        socket.emit('error', { message: 'Failed to rename room' });
+      }
+    });
+
     // Disconnect
     socket.on('disconnect', () => {
       matchingService.unregisterSocket(socket.id);
