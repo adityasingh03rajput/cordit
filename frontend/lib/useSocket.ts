@@ -11,6 +11,9 @@ const getSocketUrl = () => {
       return process.env.NEXT_PUBLIC_BACKEND_URL;
     }
     const host = window.location.hostname;
+    if (host.includes('trycloudflare.com') || host.includes('cloudflare')) {
+      return 'https://elephant-payroll-adding-requiring.trycloudflare.com';
+    }
     if (host.includes('lhr.life') || host.includes('localhost.run')) {
       return 'https://758d1643db99b8.lhr.life';
     }
