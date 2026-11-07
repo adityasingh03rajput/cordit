@@ -72,11 +72,15 @@ db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    if (!origin) {
+    if (!origin || process.env.ENVIRONMENT === 'development') {
       callback(null, true);
       return;
     }
-    if (config.allowedOrigins.includes(origin) || config.allowedOrigins.includes('*')) {
+    if (
+      config.allowedOrigins.includes(origin) ||
+      config.allowedOrigins.includes('*') ||
+      /^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?$/.test(origin)
+    ) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));

@@ -14,6 +14,8 @@ const DISALLOWED_HEADERS = new Set([
   'trailer',
   'transfer-encoding',
   'upgrade',
+  'origin',
+  'referer',
 ]);
 
 async function proxy(

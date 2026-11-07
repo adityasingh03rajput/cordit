@@ -65,7 +65,15 @@ interface ToggleSuggestionData {
 export const initializeSocket = (httpServer: HTTPServer) => {
   const io = new SocketIOServer(httpServer, {
     cors: {
-      origin: config.allowedOrigins,
+      origin: (requestOrigin, callback) => {
+        if (!requestOrigin || process.env.ENVIRONMENT === 'development') {
+          callback(null, true);
+        } else if (config.allowedOrigins.includes(requestOrigin) || config.allowedOrigins.includes('*')) {
+          callback(null, true);
+        } else {
+          callback(null, false);
+        }
+      },
       methods: ['GET', 'POST'],
       credentials: true,
     },

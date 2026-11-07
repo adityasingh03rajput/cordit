@@ -41,7 +41,9 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const data = await authAPI.login(username, password);
+      const cleanUsername = username.trim();
+      const cleanPassword = password.trim();
+      const data = await authAPI.login(cleanUsername, cleanPassword);
 
       const user = {
         username: data.username,
